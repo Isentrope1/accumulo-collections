@@ -1,0 +1,108 @@
+/* 
+Accumulo Collections
+Copyright 2016 Isentropy LLC
+Written by Jonathan Wolff <jwolff@isentropy.com>
+Isentropy specializes in big data and quantitative programming consulting,
+with particular expertise in Accumulo development and installation. 
+More info at http://isentropy.com.
+
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package com.isentropy.accumulo.util;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.Random;
+
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.isentropy.accumulo.iterators.LongCountAggregateIterator;
+
+public class Util {
+	public static Logger log = LoggerFactory.getLogger(Util.class);
+
+	final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+	
+	public static Connector getMockConnector() throws AccumuloException, AccumuloSecurityException{
+		AuthenticationToken token = new PasswordToken();
+		Connector c = new MockInstance().getConnector("root", token);
+		return c;
+	}
+
+	
+
+	public static byte[] hashPoint(int hashlength,double f){
+
+		byte[] padded = new byte[hashlength];
+		for(int i=0;i<padded.length;i++){
+			padded[i]=(byte) 0xff;
+		}
+		BigInteger bi = new BigInteger(1, padded);
+		BigDecimal bdf = new BigDecimal(f);
+		int scale = bdf.scale();
+		byte[] unpadded = bi.multiply(bdf.unscaledValue()).divide(BigDecimal.ONE.scaleByPowerOfTen(scale).toBigInteger()).toByteArray();
+		
+		if(unpadded.length == hashlength){
+			return unpadded;
+		}
+		if(unpadded.length >= hashlength){
+			//remove leading 0s
+			for(int i=0;i<padded.length;i++){
+				padded[padded.length -1 - i] = unpadded[unpadded.length-1-i];
+			}
+			return padded;
+		}
+		
+		int c=0;
+		for(int i=0;i<padded.length - unpadded.length ;i++){
+			padded[c++]=0;
+		}
+		for(int i=0;i<unpadded.length;i++){
+			padded[c++]=unpadded[i];
+		}
+		return padded;
+
+	}
+	public static String bytesToHex(byte[] bytes) {
+	    char[] hexChars = new char[bytes.length * 2];
+	    for ( int j = 0; j < bytes.length; j++ ) {
+	        int v = bytes[j] & 0xFF;
+	        hexChars[j * 2] = hexArray[v >>> 4];
+	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+	    }
+	    return new String(hexChars);
+	}
+	public static String randomHexString(int n){
+		return bytesToHex(randomBytes(n));
+	}
+	public static byte[] randomBytes(int n){
+		Random r = new Random();
+		byte[] b = new byte[n];
+		r.nextBytes(b);
+		return b;
+	}
+}
