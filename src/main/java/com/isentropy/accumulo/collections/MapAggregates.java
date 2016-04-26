@@ -57,7 +57,7 @@ public class MapAggregates {
 	 * @param map
 	 * @return
 	 */
-	public static StatisticalSummary valueStats(AccumuloSortedMap map){
+	public static StatisticalSummary valueStats(AccumuloSortedMapInterface map){
 		try {
 			return valueStats(map.getScanner(),map.getKeySerde().getClass(),map.getValueSerde().getClass());
 		} catch (TableNotFoundException e1) {
@@ -93,7 +93,7 @@ public class MapAggregates {
 	 * @param map
 	 * @return
 	 */
-	public static long count(AccumuloSortedMap map){
+	public static long count(AccumuloSortedMapInterface map){
 		try {
 			return count(map.getScanner());
 		} catch (TableNotFoundException e) {

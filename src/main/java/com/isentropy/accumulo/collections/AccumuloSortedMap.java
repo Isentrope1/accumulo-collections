@@ -74,7 +74,7 @@ import com.isentropy.accumulo.util.Util;
  *
  */
 
-public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
+public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>{
 
 	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMap.class);
 
@@ -103,7 +103,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 * @throws AccumuloException 
 	 * @throws TableExistsException 
 	 */
-	public static AccumuloSortedMap getTestInstance() throws AccumuloException, AccumuloSecurityException {
+	public static AccumuloSortedMapInterface getTestInstance() throws AccumuloException, AccumuloSecurityException {
 		Connector c = Util.getMockConnector();
 		String table = "asmtest_"+System.currentTimeMillis();
 		return new AccumuloSortedMap(c,table);
@@ -114,17 +114,39 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		init();
 	}
 	private AccumuloSortedMap(){};
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getKeySerde()
+	 */
+	@Override
 	public SerDe getKeySerde(){
 		return keySerde;
 	}
-	public AccumuloSortedMap<K,V> setKeySerde(SerDe s){
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setKeySerde(com.isentropy.accumulo.collections.io.SerDe)
+	 */
+	@Override
+	public AccumuloSortedMapInterface<K, V> setKeySerde(SerDe s){
 		keySerde=s;
 		return this;
 	}
+	
+	@Override
+	public boolean isReadOnly() {
+		return false;
+	}
+	
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getValueSerde()
+	 */
+	@Override
 	public SerDe getValueSerde(){
 		return valueSerde;
 	}
-	public AccumuloSortedMap<K,V> setValueSerde(SerDe s){
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setValueSerde(com.isentropy.accumulo.collections.io.SerDe)
+	 */
+	@Override
+	public AccumuloSortedMapInterface<K, V> setValueSerde(SerDe s){
 		valueSerde=s;
 		return this;
 	}
@@ -132,6 +154,10 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		createTable();
 	}
 
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getTable()
+	 */
+	@Override
 	public String getTable(){
 		return table;
 	}
@@ -157,7 +183,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 * @param cf
 	 * @return
 	 */
-	protected AccumuloSortedMap<K,V> setColumnFamily(byte[] cf){
+	protected AccumuloSortedMapInterface<K, V> setColumnFamily(byte[] cf){
 		colfam = cf;
 		return this;
 	}
@@ -166,29 +192,24 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 * @param cf
 	 * @return
 	 */
-	protected AccumuloSortedMap<K,V> setColumnQualifier(byte[] cq){
+	protected AccumuloSortedMapInterface<K, V> setColumnQualifier(byte[] cq){
 		colqual = cq;
 		return this;
 	}
-	/**
-	 * sets the column visibility of values
-	 * @param cf
-	 * @return
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setColumnVisibility(byte[])
 	 */
-	public AccumuloSortedMap<K,V> setColumnVisibility(byte[] cv){
+	@Override
+	public AccumuloSortedMapInterface<K, V> setColumnVisibility(byte[] cv){
 		colvis = cv;
 		return this;
 	}
-	/**
-	 * 
-	 * @param timeout the entry timeout in ms. If timeout <= 0, the ageoff feature will be removed
-	 * @return
-	 * @throws AccumuloSecurityException
-	 * @throws AccumuloException
-	 * @throws TableNotFoundException
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setTimeOutMs(long)
 	 */
 
-	public AccumuloSortedMap<K,V> setTimeOutMs(long timeout){
+	@Override
+	public AccumuloSortedMapInterface<K, V> setTimeOutMs(long timeout){
 		try{
 			EnumSet<IteratorScope> all = EnumSet.allOf(IteratorScope.class);
 			getConnector().tableOperations().removeIterator(getTable(), ITERATOR_NAME_AGEOFF, all);
@@ -218,8 +239,16 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sizeAsLong()
+	 */
+	@Override
 	public long sizeAsLong(){
-		return size(null,true,null,true);
+		try {
+			return count(getScanner());
+		} catch (TableNotFoundException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -237,16 +266,6 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	}
 
 
-	protected long size(final K from,boolean inc1, final K to,boolean inc2){
-		Scanner s = null;
-		try {
-			s = getTableScanner(from,inc1,to,inc2);
-			return count(s);
-		} catch (TableNotFoundException e) {
-			e.printStackTrace();
-			throw new IllegalStateException(e);
-		}
-	}
 
 	@Override
 	public boolean isEmpty() {
@@ -336,10 +355,10 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	}
 
 
-	/**
-	 * dumps key/values to stream. for debugging
-	 * @param ps
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#dump(java.io.PrintStream)
 	 */
+	@Override
 	public void dump(PrintStream ps){
 		Scanner s;
 		try {
@@ -399,19 +418,17 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			put(e.getKey(),e.getValue());
 		}
 	}
-	/**
-	 * deletes the map from accumulo!
-	 * @throws TableNotFoundException 
-	 * @throws AccumuloSecurityException 
-	 * @throws AccumuloException 
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#delete()
 	 */
+	@Override
 	public void delete() throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
 		log.warn("Deleting Accumulo table: "+getTable());
 		getConnector().tableOperations().delete(getTable());		
 	}
 
-	/**
-	 * Equivalent to: delete(); createTable();
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#clear()
 	 */
 	@Override
 	public void clear() {
@@ -435,6 +452,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	}
 
 	/**
+	 * always returns a AccumuloSortedMapInterface
 	 * null accepted as no limit. returned map is READ ONLY
 	 * @param fromKey
 	 * @param toKey
@@ -442,16 +460,30 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 */
 	protected SortedMap<K, V> subMapNullAccepted(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
 		final AccumuloSortedMap<K, V> parent = this;
+		Scanner s;
+		try {
+			s = parent.getScanner();
+		} catch (TableNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+		
+		Range curRange = s.getRange();
+		Range requestedRange = new Range(getKey(fromKey),inc1,getKey(toKey),inc2);
+		final Range newRange = curRange == null ? requestedRange : curRange.clip(requestedRange,true);
+		//ranges are disjoint
+		if(newRange == null)
+			return new EmptyAccumuloSortedMap();
+		
 		return new AccumuloSortedMap<K,V>(){
 
 			@Override
-			public Scanner getScanner() throws TableNotFoundException{
-				return parent.getTableScanner(fromKey, inc1, toKey, inc2);
+			public boolean isReadOnly() {
+				return true;
 			}
-
 			@Override
-			protected Scanner getTableScanner(final K from,final boolean i1,final K to,final boolean i2) throws TableNotFoundException{
-				Scanner s = parent.getTableScanner(from,i1,to,i2);
+			public Scanner getScanner() throws TableNotFoundException{
+				Scanner s = parent.getScanner();
+				s.setRange(newRange);
 				return s;
 			}
 
@@ -483,55 +515,13 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 
 			@Override
-			public long sizeAsLong() {
-				return parent.size(fromKey, inc1, toKey, inc2);
-			}
-
-			/**
-			 * true iff in range
-			 * @param k
-			 * @return
-			 */
-			protected boolean rangeCheckTo(Object k){
-				Key kk = getKey(k);
-				if(toKey != null){
-					Key tk = getKey(toKey);
-					int cmp= tk.compareTo(kk);
-					if(cmp < 0){
-						return false;
-					}
-					else if(!inc2 && cmp == 0){
-						return false;
-					}
-				}
-				return true;
-			}
-			protected boolean rangeCheck(Object k){
-				return rangeCheckFrom(k) && rangeCheckTo(k);
-			}
-			protected boolean rangeCheckFrom(Object k){
-				Key kk = getKey(k);
-				if(fromKey != null){
-					Key fk = getKey(fromKey);
-					int cmp= fk.compareTo(kk);
-					if(cmp > 0){
-						return false;
-					}
-					else if(!inc1 && cmp == 0){
-						return false;
-					}
-				}
-				return true;
-			}
-
-			@Override
 			public boolean containsValue(Object value) {
 				return parent.containsValue(value);
 			}
 
 			@Override
 			public V get(Object key) {
-				if(!rangeCheck(key))
+				if(!newRange.contains(getKey(key)))
 					return null;
 				return parent.get(key);
 			}
@@ -566,6 +556,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 				return parent.comparator();
 			}
 
+			/*
 			@Override
 			public SortedMap<K, V> subMap(K fromKeyNew, K toKeyNew) {
 				K f = rangeCheckFrom(fromKeyNew) ? fromKeyNew : fromKey;
@@ -584,6 +575,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 				K f = rangeCheckFrom(fromKeyNew) ? fromKeyNew : fromKey;
 				return parent.tailMap(f);
 			}
+			*/
 
 			@Override
 			public K firstKey() {
@@ -609,7 +601,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 			@Override
 			public Set<java.util.Map.Entry<K, V>> entrySet() {
-				return new BackingSet(parent);
+				return new BackingSet(this);
 			}
 
 			@Override
@@ -897,34 +889,50 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 * @return a Scanner over all entries of the base table in the specified range
 	 * @throws TableNotFoundException
 	 */
+	/*
 	protected Scanner getTableScanner(final K from,final boolean inc1,final K to,final boolean inc2) throws TableNotFoundException{
 		Scanner s = getConnector().createScanner(getTable(), getAuthorizations());
 		s.setRange(new Range(getKey(from),inc1,getKey(to),inc2));
 		return s;
 	}
-
-	/**
-	 * 
-	 * @return a Scanner over all rows visible to this map
-	 * @throws TableNotFoundException
+*/
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getScanner()
 	 */
+	@Override
 	public Scanner getScanner() throws TableNotFoundException{
-		return getTableScanner(null,true,null,true);
+		Scanner s = getConnector().createScanner(getTable(), getAuthorizations());
+		return s;
 	}
 
-	public AccumuloSortedMap<K,V> sample(final double fraction){
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sample(double)
+	 */
+	@Override
+	public AccumuloSortedMapInterface<K, V> sample(final double fraction){
 		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
 	}
 
-	public AccumuloSortedMap<K,V> sample(final double from_fraction, final double to_fraction,final String randSeed){
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sample(double, double, java.lang.String)
+	 */
+	@Override
+	public AccumuloSortedMapInterface<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
 		return sample(from_fraction,to_fraction,randSeed, -1);
 	}	
 
-	public AccumuloSortedMap<K,V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long max_timestamp){
+	/* (non-Javadoc)
+	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sample(double, double, java.lang.String, long)
+	 */
+	@Override
+	public AccumuloSortedMapInterface<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long max_timestamp){
 		final AccumuloSortedMap<K,V> parent = this;
 
-		AccumuloSortedMap<K,V> sampled = new AccumuloSortedMap<K,V>(){
-
+		AccumuloSortedMapInterface<K, V> sampled = new AccumuloSortedMap<K,V>(){
+			@Override
+			public boolean isReadOnly() {
+				return true;
+			}
 			@Override
 			public Scanner getScanner() throws TableNotFoundException{
 				Scanner s = parent.getScanner();
@@ -943,11 +951,6 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 				throw new UnsupportedOperationException();
 			}
 
-			@Override
-			protected Scanner getTableScanner(final K from,final boolean inc1,final K to,final boolean inc2) throws TableNotFoundException{
-				Scanner s = parent.getTableScanner(from,inc1,to,inc2);
-				return s;
-			}
 			@Override
 			public SerDe getKeySerde() {
 				return parent.getKeySerde();
