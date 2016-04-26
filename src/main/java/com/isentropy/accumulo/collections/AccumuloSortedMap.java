@@ -80,6 +80,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 
 
 	protected static final int ITERATOR_PRIORITY_AGEOFF = 10;
+	protected static final int SUBMAP_ITERATOR_PRIORITY_MIN = 100;
 	protected static final String ITERATOR_NAME_AGEOFF = "ageoff";
 	private static final int DEFAULT_RANDSEED_LENGTH=20;
 
@@ -96,6 +97,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	//value
 	private byte[] colqual="v".getBytes(StandardCharsets.UTF_8);
 
+	//submaps may pile on iterators to chain of getScanner. this int is the next iterator priority
 
 	/**
 	 * use MockAccumulo, for testing only.
@@ -153,6 +155,14 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	protected void init() throws AccumuloException, AccumuloSecurityException{
 		createTable();
 	}
+	
+	/**
+	 * submaps may pile on iterators to chain of getScanner. this method returns the next iterator priority
+	 */
+	protected int nextIteratorPriority(){
+		return SUBMAP_ITERATOR_PRIORITY_MIN;
+	}
+
 
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getTable()
@@ -933,10 +943,15 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 			public boolean isReadOnly() {
 				return true;
 			}
+			@Override 
+			protected int nextIteratorPriority(){
+				return parent.nextIteratorPriority()+1;
+			}
 			@Override
 			public Scanner getScanner() throws TableNotFoundException{
 				Scanner s = parent.getScanner();
-				IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, SamplingFilter.class);
+				IteratorSetting cfg = new IteratorSetting(parent.nextIteratorPriority(), SamplingFilter.class);
+				cfg.setName("SamplingFilter"+parent.nextIteratorPriority());
 				cfg.addOption(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
 				cfg.addOption(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
 				cfg.addOption(SamplingFilter.OPT_RANDOMSEED, randSeed);
