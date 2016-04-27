@@ -535,6 +535,10 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 			public SerDe getValueSerde() {
 				return parent.getValueSerde();
 			}
+			@Override
+			public Comparator<? super K> comparator() {
+				return parent.comparator();
+			}
 
 			@Override
 			public V get(Object key) {
@@ -567,17 +571,6 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 			public void clear() {
 				throw new UnsupportedOperationException();
 			}
-
-			@Override
-			public Comparator<? super K> comparator() {
-				return parent.comparator();
-			}
-
-			@Override
-			public Set<K> keySet() {
-				return parent.keySet(fromKey,inc1,toKey,inc1);
-			}
-
 
 		};
 
@@ -675,10 +668,6 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 */
 	@Override
 	public Set<K> keySet() {
-		return keySet(null,true,null,true);
-	}
-
-	protected Set<K> keySet(final K from,final boolean inc1,final K to,final boolean inc2) {
 		final AccumuloSortedMap<K,V> enclosing = this;
 		return new Set<K>(){
 
