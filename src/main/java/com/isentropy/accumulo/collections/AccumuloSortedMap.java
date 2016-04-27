@@ -485,7 +485,11 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 			return new EmptyAccumuloSortedMap();
 		
 		return new AccumuloSortedMap<K,V>(){
-
+			@Override 
+			protected int nextIteratorPriority(){
+				//subMap() doesnt add an iterator
+				return parent.nextIteratorPriority();
+			}
 			@Override
 			public boolean isReadOnly() {
 				return true;
@@ -522,11 +526,14 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 			public byte[] getColumnVisibility(){
 				return parent.getColumnVisibility();
 			}
-
+			@Override
+			public SerDe getKeySerde() {
+				return parent.getKeySerde();
+			}
 
 			@Override
-			public boolean containsValue(Object value) {
-				return parent.containsValue(value);
+			public SerDe getValueSerde() {
+				return parent.getValueSerde();
 			}
 
 			@Override
@@ -566,69 +573,20 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 				return parent.comparator();
 			}
 
-			/*
-			@Override
-			public SortedMap<K, V> subMap(K fromKeyNew, K toKeyNew) {
-				K f = rangeCheckFrom(fromKeyNew) ? fromKeyNew : fromKey;
-				K t = rangeCheckTo(toKeyNew) ? toKeyNew : toKey;
-				return parent.subMapNullAccepted(f, true, t, false);
-			}
-
-			@Override
-			public SortedMap<K, V> headMap(K toKeyNew) {
-				K t = rangeCheckTo(toKeyNew) ? toKeyNew : toKey;
-				return parent.headMap(t);
-			}
-
-			@Override
-			public SortedMap<K, V> tailMap(K fromKeyNew) {
-				K f = rangeCheckFrom(fromKeyNew) ? fromKeyNew : fromKey;
-				return parent.tailMap(f);
-			}
-			*/
-
-			@Override
-			public K firstKey() {
-				return entrySet().iterator().next().getKey();
-			}
-
-			@Override
-			public K lastKey() {
-				throw new UnsupportedOperationException();
-			}
-
 			@Override
 			public Set<K> keySet() {
 				return parent.keySet(fromKey,inc1,toKey,inc1);
 			}
 
-			/*
-			@Override
-			public Collection<V> values() {
-				return parent.values(fromKey,true,toKey,false);
-			}
-			 */
-
-			@Override
-			public Set<java.util.Map.Entry<K, V>> entrySet() {
-				return new BackingSet(this);
-			}
-
-			@Override
-			public SerDe getKeySerde() {
-				return parent.getKeySerde();
-			}
-
-			@Override
-			public SerDe getValueSerde() {
-				return parent.getValueSerde();
-			}
 
 		};
 
 
 	}
 
+	/**
+	 * returns an instance of AccumuloSortedMapInterface
+	 */
 	@Override
 	public SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return subMapNullAccepted(fromKey,true,toKey,true);

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
+import com.isentropy.accumulo.collections.AccumuloSortedMapInterface;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
@@ -81,13 +82,18 @@ public class AccumuloMapTest
 		
 		// MAP FEATURES
 		System.out.println("get(100) = "+asm.get(100));
-
 		// SORTED MAP FEATURES
-		AccumuloSortedMap submap = (AccumuloSortedMap) asm.subMap(10, 20);
+		AccumuloSortedMapInterface submap = (AccumuloSortedMapInterface) asm.subMap(10, 20).subMap(11, 30);
+		submap.dump(System.out);
+		
 		// should be null
 		System.out.println("submap(10,20).get(100) = "+submap.get(100));
 		//should be 10
 		System.out.println("submap(10,20).firstKey() = "+submap.firstKey());
+		
+		
+		System.out.println("sample: "+asm.sample(.5).subMap(0, 100).size());
+		
 		
 		// SAMPLING
 		// sample 50% of submap and print key values
@@ -116,44 +122,49 @@ public class AccumuloMapTest
 		
     }
     
+    private void printCollections(AccumuloSortedMapInterface map){
+		Iterator it = map.entrySet().iterator();
+		for(;it.hasNext();){
+			Entry e = (Entry) it.next();
+			System.out.println("k = "+ e.getKey() + ", v = "+e.getValue());
+		}
+		it= map.keySet().iterator();
+		for(;it.hasNext();){
+			System.out.println("k = "+ it.next());
+		}
+		it= map.values().iterator();
+		for(;it.hasNext();){
+			System.out.println("v = "+ it.next());
+		}
+		StatisticalSummary ssmStats = MapAggregates.valueStats(map);
+		System.out.println("map stats:\n"+ssmStats);
+    }
+    
     public void testApp()
     {
     	try{
-    		demo();
-    		/*
-    		long entries = 1000;
-    		AccumuloSortedMap ssm = AccumuloSortedMap.getTestInstance();
-    		ssm.setColumnVisibility("asd".getBytes());
-			ssm.setKeySerde(new LongBinarySerde());
-			for(long i=0;i<entries;i++){
-				ssm.put(i, 2*i);
+    	  	Connector c = new MockInstance().getConnector("root", new PasswordToken());
+        	//set up map load [x,2*x] for x in 1 to 1000
+        	AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+        	asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+        	for(long i=0;i<1000;i++){
+				asm.put(i, 2*i);
 			}
-			assertTrue(ssm.firstKey().equals(0l));
-			
-			System.out.println("firstKey = "+ssm.firstKey()+", size() = "+ssm.size());
-			assertTrue(ssm.size() == entries);
-			
-			
-			AccumuloSortedMap submap = (AccumuloSortedMap) ssm.subMap(10, 20);
+			assertTrue(asm.firstKey().equals(0l));
+			assertTrue(asm.size() == 1000);
+			AccumuloSortedMapInterface submap = (AccumuloSortedMapInterface) asm.subMap(10, 20);
 			assertTrue(submap.size() == 10);
-			Iterator it = submap.entrySet().iterator();
-			for(;it.hasNext();){
-				Entry e = (Entry) it.next();
-				System.out.println("k = "+ e.getKey() + ", v = "+e.getValue());
-			}
-			it= submap.keySet().iterator();
-			for(;it.hasNext();){
-				System.out.println("k = "+ it.next());
-			}
-			it= submap.values().iterator();
-			for(;it.hasNext();){
-				System.out.println("v = "+ it.next());
-			}
-			StatisticalSummary ssmStats = MapAggregates.valueStats(ssm);
-			System.out.println("ssm stats:\n"+ssmStats);
-			System.out.println("submap stats:\n"+MapAggregates.valueStats(submap));
-			assertTrue(ssmStats.getN() == 1000);
-*/
+			submap=(AccumuloSortedMapInterface) submap.subMap(11, 33);
+			assertTrue(submap.size() == 9);
+			System.out.println("submap(10,20).submap(11,33)");
+			printCollections(submap);
+			System.out.println("submap(10,20).submap(11,33).sample(.5)");
+			printCollections(submap.sample(.5));
+			
+			
+			AccumuloSortedMapInterface sample = asm.sample(.5);
+			System.out.println("sample(.5).sample(.1)");
+			printCollections(sample.sample(.1));
     	}
     	catch(Exception e){
     		e.printStackTrace();
