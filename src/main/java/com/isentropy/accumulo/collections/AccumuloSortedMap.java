@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
@@ -131,12 +133,12 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		keySerde=s;
 		return this;
 	}
-	
+
 	@Override
 	public boolean isReadOnly() {
 		return false;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getValueSerde()
 	 */
@@ -155,7 +157,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	protected void init() throws AccumuloException, AccumuloSecurityException{
 		createTable();
 	}
-	
+
 	/**
 	 * submaps may pile on iterators to chain of getScanner. this method returns the next iterator priority
 	 */
@@ -491,14 +493,14 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		} catch (TableNotFoundException e) {
 			throw new RuntimeException(e);
 		}
-		
+
 		Range curRange = s.getRange();
 		Range requestedRange = new Range(getKey(fromKey),inc1,getKey(toKey),inc2);
 		final Range newRange = curRange == null ? requestedRange : curRange.clip(requestedRange,true);
 		//ranges are disjoint
 		if(newRange == null)
 			return new EmptyAccumuloSortedMap();
-		
+
 		return new AccumuloSortedMap<K,V>(){
 			@Override 
 			protected int nextIteratorPriority(){
@@ -852,71 +854,21 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		return sample(from_fraction,to_fraction,randSeed, -1);
 	}	
 
-	/* (non-Javadoc)
-	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sample(double, double, java.lang.String, long)
-	 */
+	protected AccumuloSortedMap<K,V> derrivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options){
+		Map<String,String> itcfg = new HashMap<String,String>();
+		itcfg.putAll(iterator_options);
+		return new IteratorStackedSubmap<K,V>(this,iterator,itcfg);		
+	}
+
 	@Override
 	public AccumuloSortedMapInterface<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long max_timestamp){
-		final AccumuloSortedMap<K,V> parent = this;
-
-		AccumuloSortedMapInterface<K, V> sampled = new AccumuloSortedMap<K,V>(){
-			@Override
-			public boolean isReadOnly() {
-				return true;
-			}
-			@Override 
-			protected int nextIteratorPriority(){
-				return parent.nextIteratorPriority()+1;
-			}
-			@Override
-			public Scanner getScanner() throws TableNotFoundException{
-				Scanner s = parent.getScanner();
-				IteratorSetting cfg = new IteratorSetting(parent.nextIteratorPriority(), SamplingFilter.class);
-				cfg.setName("SamplingFilter"+parent.nextIteratorPriority());
-				cfg.addOption(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
-				cfg.addOption(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
-				cfg.addOption(SamplingFilter.OPT_RANDOMSEED, randSeed);
-				if(max_timestamp > 0)
-					cfg.addOption(SamplingFilter.OPT_MAXTIMESTAMP, Long.toString(max_timestamp));
-				s.addScanIterator(cfg);
-				return s;
-			}
-			@Override
-			public SerDe getKeySerde() {
-				return parent.getKeySerde();
-			}
-			@Override
-			public SerDe getValueSerde() {
-				return parent.getValueSerde();
-			}
-			@Override
-			protected Authorizations getAuthorizations(){
-				return parent.getAuthorizations();
-			}
-			@Override
-			protected Connector getConnector() {
-				return parent.getConnector();
-			}	
-
-			@Override
-			public String getTable(){
-				return parent.getTable();
-			}
-			@Override
-			public byte[] getColumnFamily(){
-				return parent.getColumnFamily();
-			}
-			@Override
-			public byte[] getColumnQualifier(){
-				return parent.getColumnQualifier();
-			}
-			@Override
-			public byte[] getColumnVisibility(){
-				return parent.getColumnVisibility();
-			}
-			//AccumuloSortedMap write operations throw exception if isReadOnly()
-		};
-		return sampled;
+		Map<String,String> cfg = new HashMap<String,String>();
+		cfg.put(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
+		cfg.put(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
+		cfg.put(SamplingFilter.OPT_RANDOMSEED, randSeed);
+		if(max_timestamp > 0)
+			cfg.put(SamplingFilter.OPT_MAXTIMESTAMP, Long.toString(max_timestamp));
+		return derrivedMapFromIterator(SamplingFilter.class,cfg);
 	}
 
 	protected Iterator<java.util.Map.Entry<K, V>> iterator(){
