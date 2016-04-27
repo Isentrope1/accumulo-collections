@@ -485,7 +485,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @param toKey
 	 * @return
 	 */
-	protected SortedMap<K, V> subMapNullAccepted(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
+	protected AccumuloSortedMapInterface<K, V> subMapNullAccepted(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
 		final AccumuloSortedMap<K, V> parent = this;
 		Scanner s;
 		try {
@@ -573,17 +573,17 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * returns an instance of AccumuloSortedMapInterface
 	 */
 	@Override
-	public SortedMap<K, V> subMap(K fromKey, K toKey) {
+	public AccumuloSortedMapInterface<K, V> subMap(K fromKey, K toKey) {
 		return subMapNullAccepted(fromKey,true,toKey,true);
 	}
 
 	@Override
-	public SortedMap<K, V> headMap(K toKey) {
+	public AccumuloSortedMapInterface<K, V> headMap(K toKey) {
 		return subMapNullAccepted(null,true,toKey,false);
 	}
 
 	@Override
-	public SortedMap<K, V> tailMap(K fromKey) {
+	public AccumuloSortedMapInterface<K, V> tailMap(K fromKey) {
 		return subMapNullAccepted(fromKey,true,null,true);
 	}
 
