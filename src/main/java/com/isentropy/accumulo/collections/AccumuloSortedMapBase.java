@@ -22,8 +22,11 @@ limitations under the License.
 package com.isentropy.accumulo.collections;
 
 import java.io.PrintStream;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -55,11 +58,6 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
 	public abstract long sizeAsLong();
 
-	/**
-	 * dumps key/values to stream. for debugging
-	 * @param ps
-	 */
-	public abstract void dump(PrintStream ps);
 
 	/**
 	 * deletes the map from accumulo!
@@ -76,9 +74,8 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public abstract void clear();
 
 	/**
-	 * 
-	 * @return a Scanner over all rows visible to this map
-	 * @throws TableNotFoundException
+	 *
+	 *  This method allows 
 	 */
 	public  abstract AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
 
@@ -89,5 +86,18 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public final AccumuloSortedMapBase<K, V> sample(final double fraction){
 		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
 	}
+
+	/**
+	 * dumps key/values to stream. for debugging
+	 * @param ps
+	 */
+
+	public void dump(PrintStream ps){
+		for(Map.Entry<K,V> e : entrySet()){
+			ps.println("k = "+e.getKey()+" : v = "+e.getValue());
+		}
+		ps.flush();
+	}
+
 
 }

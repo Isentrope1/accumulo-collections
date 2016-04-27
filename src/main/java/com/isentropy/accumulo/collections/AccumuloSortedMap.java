@@ -365,26 +365,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	}
 
 
-	/* (non-Javadoc)
-	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#dump(java.io.PrintStream)
-	 */
-	@Override
-	public void dump(PrintStream ps){
-		Scanner s;
-		try {
-			s = getScanner();
-			Iterator<Entry<Key,Value>> it = s.iterator();
-			while(it.hasNext()){
-				Entry<Key,Value> e = it.next();
-				ps.println("Key: "+getKeySerde().deserialize(e.getKey().getRowData().toArray()) + "\tValue: "+getValueSerde().deserialize(e.getValue().get()));
-			}
-		} catch (TableNotFoundException e) {
-			log.error(e.getMessage());
-			throw new RuntimeException(e);
-		}
-		ps.flush();
-	}
-
 	@Override
 	public V put(K key, V value) {
 		if(isReadOnly())
