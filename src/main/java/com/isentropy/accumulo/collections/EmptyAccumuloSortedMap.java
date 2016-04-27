@@ -143,7 +143,7 @@ public class EmptyAccumuloSortedMap<K,V> implements AccumuloSortedMapInterface<K
 
 	@Override
 	public AccumuloSortedMapInterface<K, V> setTimeOutMs(long timeout) {
-		return this;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
