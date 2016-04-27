@@ -220,6 +220,8 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 
 	@Override
 	public AccumuloSortedMapInterface<K, V> setTimeOutMs(long timeout){
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
 		try{
 			EnumSet<IteratorScope> all = EnumSet.allOf(IteratorScope.class);
 			getConnector().tableOperations().removeIterator(getTable(), ITERATOR_NAME_AGEOFF, all);
@@ -387,6 +389,8 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 
 	@Override
 	public V put(K key, V value) {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
 		try {
 			V prev = this.get(key);
 			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
@@ -407,6 +411,8 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 
 	@Override
 	public V remove(Object key) {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
 		try {
 			V prev = this.get(key);
 			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
@@ -424,6 +430,9 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+
 		for(Entry<? extends K, ? extends V> e :m.entrySet()){
 			put(e.getKey(),e.getValue());
 		}
@@ -433,6 +442,9 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 */
 	@Override
 	public void delete() throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+
 		log.warn("Deleting Accumulo table: "+getTable());
 		getConnector().tableOperations().delete(getTable());		
 	}
@@ -442,6 +454,9 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 */
 	@Override
 	public void clear() {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+
 		try {
 			delete();
 			createTable();
@@ -546,32 +561,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 					return null;
 				return parent.get(key);
 			}
-
-			@Override 
-			public AccumuloSortedMap<K, V> setTimeOutMs(long timeout){
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public V put(K key, V value) {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public V remove(Object key) {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public void putAll(Map<? extends K, ? extends V> m) {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public void clear() {
-				throw new UnsupportedOperationException();
-			}
-
+			//AccumuloSortedMap write operations throw exception if isReadOnly()
 		};
 
 
@@ -837,22 +827,6 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		};
 	}
 
-	/**
-	 * 
-	 * @param from
-	 * @param inc1
-	 * @param to
-	 * @param inc2
-	 * @return a Scanner over all entries of the base table in the specified range
-	 * @throws TableNotFoundException
-	 */
-	/*
-	protected Scanner getTableScanner(final K from,final boolean inc1,final K to,final boolean inc2) throws TableNotFoundException{
-		Scanner s = getConnector().createScanner(getTable(), getAuthorizations());
-		s.setRange(new Range(getKey(from),inc1,getKey(to),inc2));
-		return s;
-	}
-*/
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getScanner()
 	 */
@@ -907,12 +881,6 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 				s.addScanIterator(cfg);
 				return s;
 			}
-
-			@Override 
-			public AccumuloSortedMap<K, V> setTimeOutMs(long timeout){
-				throw new UnsupportedOperationException();
-			}
-
 			@Override
 			public SerDe getKeySerde() {
 				return parent.getKeySerde();
@@ -946,32 +914,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 			public byte[] getColumnVisibility(){
 				return parent.getColumnVisibility();
 			}
-
-			@Override
-			public V put(K key, V value) {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public V remove(Object key) {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public void putAll(Map<? extends K, ? extends V> m) {
-				throw new UnsupportedOperationException();
-			}
-
-			@Override
-			public void clear() {
-				throw new UnsupportedOperationException();
-			}
-			@Override
-			public void delete(){
-				throw new UnsupportedOperationException();
-			}
-
-
+			//AccumuloSortedMap write operations throw exception if isReadOnly()
 		};
 		return sampled;
 	}

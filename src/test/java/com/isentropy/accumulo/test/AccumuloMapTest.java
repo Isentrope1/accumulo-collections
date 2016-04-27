@@ -153,6 +153,16 @@ public class AccumuloMapTest
 			assertTrue(asm.firstKey().equals(0l));
 			assertTrue(asm.size() == 1000);
 			AccumuloSortedMapInterface submap = (AccumuloSortedMapInterface) asm.subMap(10, 20);
+			boolean err = false;
+			try{
+				submap.put(1, -1);
+			}
+			catch(UnsupportedOperationException e){
+				err = true;
+			}
+			// put should throw err in submap
+			assertTrue(err);
+			
 			assertTrue(submap.size() == 10);
 			submap=(AccumuloSortedMapInterface) submap.subMap(11, 33);
 			assertTrue(submap.size() == 9);
