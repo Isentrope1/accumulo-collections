@@ -105,7 +105,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @throws AccumuloException 
 	 * @throws TableExistsException 
 	 */
-	public static AccumuloSortedMapInterface getTestInstance() throws AccumuloException, AccumuloSecurityException {
+	public static AccumuloSortedMap getTestInstance() throws AccumuloException, AccumuloSecurityException {
 		Connector c = Util.getMockConnector();
 		String table = "asmtest_"+System.currentTimeMillis();
 		return new AccumuloSortedMap(c,table);
@@ -115,7 +115,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		this.table = table;
 		init();
 	}
-	private AccumuloSortedMap(){};
+	protected AccumuloSortedMap(){};
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getKeySerde()
 	 */

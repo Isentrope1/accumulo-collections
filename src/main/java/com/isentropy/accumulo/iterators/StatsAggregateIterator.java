@@ -50,6 +50,7 @@ public class StatsAggregateIterator extends AggregateIterator{
 	protected byte[] getAggregateColqual(){
 		return "stats".getBytes(StandardCharsets.UTF_8);
 	}
+	
 	@Override
 	protected KeyValue aggregate() throws IOException{
 		Key k=null;

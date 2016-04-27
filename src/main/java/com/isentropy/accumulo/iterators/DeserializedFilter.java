@@ -19,99 +19,46 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
  */
-
-
-
 package com.isentropy.accumulo.iterators;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collection;
+import java.security.SecureClassLoader;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.io.SerDe;
 /**
- * 
- * AggregateIterator is an iterator that calculates a tablet-wide aggregate of some sort (count, sum ,etc). 
+ * This class filters deserialized entries
  *
  */
-public abstract class AggregateIterator extends WrappingIterator implements OptionDescriber {
-	public static Logger log = LoggerFactory.getLogger(AggregateIterator.class);
 
-	private Key result_key = null;
-	private Value result = null;
-	private boolean isAggregated = false;
-	private boolean isNexted = false;
+public abstract class DeserializedFilter extends Filter{
+	public static Logger log = LoggerFactory.getLogger(DeserializedFilter.class);
 	public static final String OPT_KEYSERDE = "keyserde";
 	public static final String OPT_VALUESERDE = "valueserde";
-
-
 	// serde can be null if the iterator doesn't actually need to interpret values (eg for count)
 	protected SerDe key_serde = null;
 	protected SerDe value_serde = null;
-
-
-	protected abstract KeyValue aggregate() throws IOException;
-	protected byte[] getAggregateColqual(){
-		return "agg_cq".getBytes(StandardCharsets.UTF_8);
-	}
-
-	public static final class KeyValue{
-		public KeyValue(){};
-		public KeyValue(Key k, Value v){key=k;value=v;};
-		Key key;
-		Value value;
-	}
-
 	
-
-	protected void aggregateWrapper() throws IOException{
-		KeyValue kv = aggregate();
-		result_key = kv.key;
-		result = kv.value;
-		isAggregated = true;
-		if(result_key != null)
-			result_key = new Key(result_key.getRowData().getBackingArray(), getAggregateColfam(), getAggregateColqual(), result_key.getColumnVisibilityData().getBackingArray(), result_key.getTimestamp());
-	}
-	protected byte[] getAggregateColfam(){
-		return "agg".getBytes(StandardCharsets.UTF_8);
-	}
-
-	@Override 
-	public boolean hasTop(){
-		return !isNexted && result_key != null;
-	}
-
-	@Override 
-	public void next(){
-		isNexted = true;
-	}
-	@Override
-	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-		super.seek(range, columnFamilies, inclusive);
-		aggregateWrapper();
-	}
-
-	@Override
-	public Key getTopKey() {
-		//result_key contains the computed aggregate
-		return result_key;
-	}
+	
+	SecureClassLoader cl = new SecureClassLoader(){
+		public Class deserialize(byte[] classBytes){
+			log.info("Deserializing filter class of length "+classBytes.length);
+			return  defineClass(null,classBytes, 0,classBytes.length);
+		}
+	};
+	
 	@Override
 	public IteratorOptions describeOptions() {
-		String desc = "An iterator that sees all rows on a tablet server and computes some aggregate (count, sum, etc)";
+		String desc = "An iterator that wraps a AccumuloMapFilter to filter bytes on the tablet server";
 		HashMap<String,String> namedOptions = new HashMap<String,String>();
 		namedOptions.put(OPT_KEYSERDE, "serde for keys. only needed if parsing key bytes");
 		namedOptions.put(OPT_VALUESERDE, "serde for values. only needed if parsing value bytes");
@@ -139,8 +86,11 @@ public abstract class AggregateIterator extends WrappingIterator implements Opti
 				return false;
 			}
 		}
+		
+
 		return true;
 	}
+
 	@Override
 	public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
 		super.init(source,options,env);
@@ -156,11 +106,11 @@ public abstract class AggregateIterator extends WrappingIterator implements Opti
 		}
 	}
 
-
-
+	protected abstract boolean acceptDeserialized(Object key, Object value);
 
 	@Override
-	public Value getTopValue() {
-		return result;
+	public boolean accept(Key k, Value v) {
+		return acceptDeserialized(key_serde.deserialize(k.getRowData().toArray()), value_serde.deserialize(v.get()));
 	}
+
 }
