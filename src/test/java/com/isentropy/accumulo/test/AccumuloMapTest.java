@@ -36,7 +36,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
-import com.isentropy.accumulo.collections.AccumuloSortedMapInterface;
+import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
@@ -83,7 +83,7 @@ public class AccumuloMapTest
 		// MAP FEATURES
 		System.out.println("get(100) = "+asm.get(100));
 		// SORTED MAP FEATURES
-		AccumuloSortedMapInterface submap = (AccumuloSortedMapInterface) asm.subMap(10, 20).subMap(11, 30);
+		AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20).subMap(11, 30);
 		submap.dump(System.out);
 		
 		// should be null
@@ -122,7 +122,7 @@ public class AccumuloMapTest
 		
     }
     
-    private void printCollections(AccumuloSortedMapInterface map){
+    private void printCollections(AccumuloSortedMapBase map){
 		Iterator it = map.entrySet().iterator();
 		for(;it.hasNext();){
 			Entry e = (Entry) it.next();
@@ -138,6 +138,8 @@ public class AccumuloMapTest
 		}
 		StatisticalSummary ssmStats = MapAggregates.valueStats(map);
 		System.out.println("map stats:\n"+ssmStats);
+		
+		
     }
     
     public void testApp()
@@ -152,7 +154,7 @@ public class AccumuloMapTest
 			}
 			assertTrue(asm.firstKey().equals(0l));
 			assertTrue(asm.size() == 1000);
-			AccumuloSortedMapInterface submap = (AccumuloSortedMapInterface) asm.subMap(10, 20);
+			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);
 			boolean err = false;
 			try{
 				submap.put(1, -1);
@@ -164,7 +166,7 @@ public class AccumuloMapTest
 			assertTrue(err);
 			
 			assertTrue(submap.size() == 10);
-			submap=(AccumuloSortedMapInterface) submap.subMap(11, 33);
+			submap=(AccumuloSortedMapBase) submap.subMap(11, 33);
 			assertTrue(submap.size() == 9);
 			System.out.println("submap(10,20).submap(11,33)");
 			printCollections(submap);
@@ -172,9 +174,18 @@ public class AccumuloMapTest
 			printCollections(submap.sample(.5));
 			
 			
-			AccumuloSortedMapInterface sample = asm.sample(.5);
+			AccumuloSortedMapBase sample = asm.sample(.5);
 			System.out.println("sample(.5).sample(.1)");
 			printCollections(sample.sample(.1));
+			
+			asm.setTimeOutMs(5000);
+			Thread.sleep(3000);
+			asm.put(123, 345);
+			Thread.sleep(2000);
+			//all entries except 123 will have timed out by now. size should be 1
+			System.out.println("map size after sleep = "+asm.size());
+			assertTrue(asm.size() == 1);
+		
     	}
     	catch(Exception e){
     		e.printStackTrace();

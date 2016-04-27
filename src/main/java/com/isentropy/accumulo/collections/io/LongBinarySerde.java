@@ -37,8 +37,7 @@ import com.isentropy.accumulo.util.Util;
 public class LongBinarySerde implements SerDe{
 	public static Logger log = LoggerFactory.getLogger(LongBinarySerde.class);
 
-	@Override
-	public byte[] serialize(Object o){	
+	public static byte[] longSerialize(Object o){	
 		ByteArrayOutputStream bos = new ByteArrayOutputStream() ;
 		ObjectOutputStream out;
 		try {
@@ -51,7 +50,12 @@ public class LongBinarySerde implements SerDe{
 		}
 		byte[] rslt= bos.toByteArray();
 		//log.debug("serialize: "+o+" = "+rslt.length+" "+Util.bytesToHex(rslt));
-		return rslt;
+		return rslt;		
+	}
+	
+	@Override
+	public byte[] serialize(Object o){	
+		return longSerialize(o);
 	}
 	@Override
 	public Object deserialize(byte[] b){

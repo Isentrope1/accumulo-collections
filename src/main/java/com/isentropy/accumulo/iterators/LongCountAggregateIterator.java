@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
+import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.iterators.AggregateIterator.KeyValue;
 
 public class LongCountAggregateIterator extends AggregateIterator{
@@ -42,7 +43,7 @@ public class LongCountAggregateIterator extends AggregateIterator{
 			count++;
 			getSource().next();
 		}
-		return new KeyValue(k,new Value(Long.toString(count).getBytes(StandardCharsets.UTF_8)));
+		return new KeyValue(k,new Value(LongBinarySerde.longSerialize(count)));
 	}
 
 	@Override

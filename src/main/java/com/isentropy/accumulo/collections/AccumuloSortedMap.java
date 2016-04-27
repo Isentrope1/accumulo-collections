@@ -76,7 +76,7 @@ import com.isentropy.accumulo.util.Util;
  *
  */
 
-public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>{
+public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 
 	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMap.class);
 
@@ -84,7 +84,6 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	protected static final int ITERATOR_PRIORITY_AGEOFF = 10;
 	protected static final int SUBMAP_ITERATOR_PRIORITY_MIN = 100;
 	protected static final String ITERATOR_NAME_AGEOFF = "ageoff";
-	private static final int DEFAULT_RANDSEED_LENGTH=20;
 
 	private Connector conn;
 	private String table;
@@ -129,7 +128,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setKeySerde(com.isentropy.accumulo.collections.io.SerDe)
 	 */
 	@Override
-	public AccumuloSortedMapInterface<K, V> setKeySerde(SerDe s){
+	public AccumuloSortedMapBase<K, V> setKeySerde(SerDe s){
 		keySerde=s;
 		return this;
 	}
@@ -150,7 +149,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setValueSerde(com.isentropy.accumulo.collections.io.SerDe)
 	 */
 	@Override
-	public AccumuloSortedMapInterface<K, V> setValueSerde(SerDe s){
+	public AccumuloSortedMapBase<K, V> setValueSerde(SerDe s){
 		valueSerde=s;
 		return this;
 	}
@@ -195,7 +194,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @param cf
 	 * @return
 	 */
-	protected AccumuloSortedMapInterface<K, V> setColumnFamily(byte[] cf){
+	protected AccumuloSortedMapBase<K, V> setColumnFamily(byte[] cf){
 		colfam = cf;
 		return this;
 	}
@@ -204,7 +203,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @param cf
 	 * @return
 	 */
-	protected AccumuloSortedMapInterface<K, V> setColumnQualifier(byte[] cq){
+	protected AccumuloSortedMapBase<K, V> setColumnQualifier(byte[] cq){
 		colqual = cq;
 		return this;
 	}
@@ -212,16 +211,20 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setColumnVisibility(byte[])
 	 */
 	@Override
-	public AccumuloSortedMapInterface<K, V> setColumnVisibility(byte[] cv){
+	public AccumuloSortedMapBase<K, V> setColumnVisibility(byte[] cv){
 		colvis = cv;
 		return this;
 	}
-	/* (non-Javadoc)
-	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setTimeOutMs(long)
-	 */
 
-	@Override
-	public AccumuloSortedMapInterface<K, V> setTimeOutMs(long timeout){
+	/**
+	 * 
+	 * @param timeout the entry timeout in ms. If timeout <= 0, the ageoff feature will be removed
+	 * @return
+	 * @throws AccumuloSecurityException
+	 * @throws AccumuloException
+	 * @throws TableNotFoundException
+	 */
+	public AccumuloSortedMapBase<K, V> setTimeOutMs(long timeout){
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 		try{
@@ -258,11 +261,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 */
 	@Override
 	public long sizeAsLong(){
-		try {
-			return count(getScanner());
-		} catch (TableNotFoundException e) {
-			throw new RuntimeException(e);
-		}
+		return MapAggregates.count(this);
 	}
 
 	@Override
@@ -275,9 +274,6 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		return (int) sz;
 	}
 
-	protected long count(Scanner s){
-		return MapAggregates.count(s);
-	}
 
 
 
@@ -485,7 +481,7 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * @param toKey
 	 * @return
 	 */
-	protected AccumuloSortedMapInterface<K, V> subMapNullAccepted(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
+	protected AccumuloSortedMapBase<K, V> subMapNullAccepted(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
 		final AccumuloSortedMap<K, V> parent = this;
 		Scanner s;
 		try {
@@ -573,17 +569,17 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 	 * returns an instance of AccumuloSortedMapInterface
 	 */
 	@Override
-	public AccumuloSortedMapInterface<K, V> subMap(K fromKey, K toKey) {
+	public AccumuloSortedMapBase<K, V> subMap(K fromKey, K toKey) {
 		return subMapNullAccepted(fromKey,true,toKey,true);
 	}
 
 	@Override
-	public AccumuloSortedMapInterface<K, V> headMap(K toKey) {
+	public AccumuloSortedMapBase<K, V> headMap(K toKey) {
 		return subMapNullAccepted(null,true,toKey,false);
 	}
 
 	@Override
-	public AccumuloSortedMapInterface<K, V> tailMap(K fromKey) {
+	public AccumuloSortedMapBase<K, V> tailMap(K fromKey) {
 		return subMapNullAccepted(fromKey,true,null,true);
 	}
 
@@ -829,46 +825,28 @@ public class AccumuloSortedMap<K,V> implements  AccumuloSortedMapInterface<K, V>
 		};
 	}
 
-	/* (non-Javadoc)
-	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getScanner()
-	 */
-	@Override
-	public Scanner getScanner() throws TableNotFoundException{
+	protected Scanner getScanner() throws TableNotFoundException{
 		Scanner s = getConnector().createScanner(getTable(), getAuthorizations());
 		return s;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sample(double)
-	 */
-	@Override
-	public AccumuloSortedMapInterface<K, V> sample(final double fraction){
-		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
-	}
 
-	/* (non-Javadoc)
-	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sample(double, double, java.lang.String)
-	 */
 	@Override
-	public AccumuloSortedMapInterface<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
-		return sample(from_fraction,to_fraction,randSeed, -1);
-	}	
-
-	protected AccumuloSortedMap<K,V> derrivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options){
+	public AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
 		Map<String,String> itcfg = new HashMap<String,String>();
-		itcfg.putAll(iterator_options);
-		return new IteratorStackedSubmap<K,V>(this,iterator,itcfg);		
+		if(iterator_options != null)
+			itcfg.putAll(iterator_options);
+		return new IteratorStackedSubmap<K,V>(this,iterator,itcfg,derivedMapValueSerde);		
 	}
 
-	@Override
-	public AccumuloSortedMapInterface<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long max_timestamp){
+	public AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long max_timestamp){
 		Map<String,String> cfg = new HashMap<String,String>();
 		cfg.put(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
 		cfg.put(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
 		cfg.put(SamplingFilter.OPT_RANDOMSEED, randSeed);
 		if(max_timestamp > 0)
 			cfg.put(SamplingFilter.OPT_MAXTIMESTAMP, Long.toString(max_timestamp));
-		return derrivedMapFromIterator(SamplingFilter.class,cfg);
+		return derivedMapFromIterator(SamplingFilter.class,cfg,getValueSerde());
 	}
 
 	protected Iterator<java.util.Map.Entry<K, V>> iterator(){

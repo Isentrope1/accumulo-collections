@@ -33,11 +33,14 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 
-public class EmptyAccumuloSortedMap<K,V> implements AccumuloSortedMapInterface<K, V> {
+public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 
 	public EmptyAccumuloSortedMap() {
 	}
@@ -138,7 +141,7 @@ public class EmptyAccumuloSortedMap<K,V> implements AccumuloSortedMapInterface<K
 	}
 
 	@Override
-	public AccumuloSortedMapInterface<K, V> setKeySerde(SerDe s) {
+	public AccumuloSortedMapBase<K, V> setKeySerde(SerDe s) {
 		return this;
 	}
 
@@ -148,7 +151,7 @@ public class EmptyAccumuloSortedMap<K,V> implements AccumuloSortedMapInterface<K
 	}
 
 	@Override
-	public AccumuloSortedMapInterface<K, V> setValueSerde(SerDe s) {
+	public AccumuloSortedMapBase<K, V> setValueSerde(SerDe s) {
 		return this;
 	}
 
@@ -158,13 +161,8 @@ public class EmptyAccumuloSortedMap<K,V> implements AccumuloSortedMapInterface<K
 	}
 
 	@Override
-	public AccumuloSortedMapInterface<K, V> setColumnVisibility(byte[] cv) {
+	public AccumuloSortedMapBase<K, V> setColumnVisibility(byte[] cv) {
 		return this;
-	}
-
-	@Override
-	public AccumuloSortedMapInterface<K, V> setTimeOutMs(long timeout) {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -191,31 +189,19 @@ public class EmptyAccumuloSortedMap<K,V> implements AccumuloSortedMapInterface<K
 	}
 
 	@Override
-	public Scanner getScanner() throws TableNotFoundException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public AccumuloSortedMapInterface<K, V> sample(double fraction) {
-		return this;
-	}
-
-	@Override
-	public AccumuloSortedMapInterface<K, V> sample(double from_fraction,
-			double to_fraction, String randSeed) {
-		return this;
-	}
-
-	@Override
-	public AccumuloSortedMapInterface<K, V> sample(double from_fraction,
-			double to_fraction, String randSeed, long max_timestamp) {
-		return this;
-	}
-
-	@Override
 	public boolean isReadOnly() {
 		return true;
+	}
+
+	@Override
+	public AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
+		return this;
+	}
+
+	@Override
+	public AccumuloSortedMapBase<K, V> sample(double from_fraction,
+			double to_fraction, String randSeed, long max_timestamp) {
+			return this;
 	}
 
 }

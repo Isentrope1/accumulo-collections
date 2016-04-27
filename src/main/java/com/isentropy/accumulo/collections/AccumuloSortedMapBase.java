@@ -22,53 +22,44 @@ limitations under the License.
 package com.isentropy.accumulo.collections;
 
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.util.Util;
 
-public interface AccumuloSortedMapInterface<K, V> extends SortedMap<K,V>{
+public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
+	private static final int DEFAULT_RANDSEED_LENGTH=20;
 
-	public boolean isReadOnly();
-	public SerDe getKeySerde();
-
-	public AccumuloSortedMapInterface<K, V> setKeySerde(SerDe s);
-
-	public SerDe getValueSerde();
-
-	public AccumuloSortedMapInterface<K, V> setValueSerde(SerDe s);
-
-	public String getTable();
+	public abstract boolean isReadOnly();
+	public  abstract SerDe getKeySerde();
+	public  abstract AccumuloSortedMapBase<K, V> setKeySerde(SerDe s);
+	public  abstract SerDe getValueSerde();
+	public  abstract AccumuloSortedMapBase<K, V> setValueSerde(SerDe s);
+	public  abstract String getTable();
 
 	/**
 	 * sets the column visibility of values
 	 * @param cf
 	 * @return
 	 */
-	public AccumuloSortedMapInterface<K, V> setColumnVisibility(byte[] cv);
+	public  abstract AccumuloSortedMapBase<K, V> setColumnVisibility(byte[] cv);
 
-	/**
-	 * 
-	 * @param timeout the entry timeout in ms. If timeout <= 0, the ageoff feature will be removed
-	 * @return
-	 * @throws AccumuloSecurityException
-	 * @throws AccumuloException
-	 * @throws TableNotFoundException
-	 */
-
-	public AccumuloSortedMapInterface<K, V> setTimeOutMs(long timeout);
-
-	public long sizeAsLong();
+	public abstract long sizeAsLong();
 
 	/**
 	 * dumps key/values to stream. for debugging
 	 * @param ps
 	 */
-	public void dump(PrintStream ps);
+	public abstract void dump(PrintStream ps);
 
 	/**
 	 * deletes the map from accumulo!
@@ -76,27 +67,27 @@ public interface AccumuloSortedMapInterface<K, V> extends SortedMap<K,V>{
 	 * @throws AccumuloSecurityException 
 	 * @throws AccumuloException 
 	 */
-	public void delete() throws AccumuloException, AccumuloSecurityException,
-			TableNotFoundException;
+	public abstract void delete() throws AccumuloException, AccumuloSecurityException,
+	TableNotFoundException;
 
 	/**
 	 * Equivalent to: delete(); createTable();
 	 */
-	public void clear();
+	public abstract void clear();
 
 	/**
 	 * 
 	 * @return a Scanner over all rows visible to this map
 	 * @throws TableNotFoundException
 	 */
-	public Scanner getScanner() throws TableNotFoundException;
+	public  abstract AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
 
-	public AccumuloSortedMapInterface<K, V> sample(double fraction);
-
-	public AccumuloSortedMapInterface<K, V> sample(double from_fraction,
-			double to_fraction, String randSeed);
-
-	public AccumuloSortedMapInterface<K, V> sample(double from_fraction,
-			double to_fraction, String randSeed, long max_timestamp);
+	public abstract AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed,long max_timestamp);
+	public final AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
+		return sample(from_fraction,to_fraction,randSeed,-1);		
+	}
+	public final AccumuloSortedMapBase<K, V> sample(final double fraction){
+		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
+	}
 
 }

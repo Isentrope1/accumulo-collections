@@ -23,8 +23,10 @@ limitations under the License.
 package com.isentropy.accumulo.collections;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -39,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
+import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.iterators.AggregateIterator;
 import com.isentropy.accumulo.iterators.LongCountAggregateIterator;
@@ -57,15 +60,22 @@ public class MapAggregates {
 	 * @param map
 	 * @return
 	 */
-	public static StatisticalSummary valueStats(AccumuloSortedMapInterface map){
-		try {
-			return valueStats(map.getScanner(),map.getKeySerde().getClass(),map.getValueSerde().getClass());
-		} catch (TableNotFoundException e1) {
-			log.error(e1.getMessage());
-			return null;
+	public static StatisticalSummary valueStats(AccumuloSortedMapBase map){
+		Map<String,String> opts = new HashMap<String,String>();
+		opts.put(AggregateIterator.OPT_KEYSERDE, map.getKeySerde().getClass().getName());
+		opts.put(AggregateIterator.OPT_VALUESERDE, map.getKeySerde().getClass().getName());
+
+		AccumuloSortedMapBase tabletSummaries = map.derivedMapFromIterator(StatsAggregateIterator.class, opts,new JavaSerializationSerde());
+		List<SummaryStatistics> perTabletStats = new ArrayList<SummaryStatistics>();
+		Set<Map.Entry> s =tabletSummaries.entrySet();
+		for(Map.Entry e : s){
+			SummaryStatistics stats = (SummaryStatistics) e.getValue();
+			perTabletStats.add(stats);
 		}
+		StatisticalSummaryValues fullstats = AggregateSummaryStatistics.aggregate(perTabletStats);
+		return fullstats;
 	}
-	
+	/*
 	protected static StatisticalSummary valueStats(Scanner s, Class keySerDe, Class valueSerDe){
 		try{	
 			IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, StatsAggregateIterator.class);
@@ -88,24 +98,25 @@ public class MapAggregates {
 		}
 		return null;
 	}
+	 */
 	/**
 	 * same as map.sizeAsLong()
 	 * @param map
 	 * @return
 	 */
-	public static long count(AccumuloSortedMapInterface map){
-		try {
-			return count(map.getScanner());
-		} catch (TableNotFoundException e) {
-			log.error(e.getMessage());
-			return -1;
+	public static long count(AccumuloSortedMapBase map){
+		AccumuloSortedMapBase tabletSummaries = map.derivedMapFromIterator(LongCountAggregateIterator.class, null,new LongBinarySerde());
+		Set<Map.Entry> s =tabletSummaries.entrySet();
+		long sum=0;
+		for(Map.Entry e : s){
+			sum += (Long) e.getValue();
 		}
+		return sum;
 	}
 	/**
 	 * counts total keys
 	 * @param s
 	 * @return
-	 */
 	protected static long count(Scanner s){
 		try{	
 			return countUsingIterator(s);
@@ -136,5 +147,6 @@ public class MapAggregates {
 		}
 		return cnt;
 	}
+	*/
 
 }

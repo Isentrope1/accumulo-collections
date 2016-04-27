@@ -39,11 +39,15 @@ public class IteratorStackedSubmap<K,V> extends AccumuloSortedMap<K,V>{
 	private AccumuloSortedMap<K,V> parent;
 	private Class<? extends SortedKeyValueIterator<Key, Value>> iterator;
 	private Map<String,String> iterator_options;
-	public IteratorStackedSubmap(AccumuloSortedMap<K,V> parent, Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options) {
+	private SerDe newValueSerde;
+	
+	public IteratorStackedSubmap(AccumuloSortedMap<K,V> parent, Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde) {
 		this.parent = parent;
 		this.iterator = iterator;
 		this.iterator_options = iterator_options;
+		newValueSerde = derivedMapValueSerde;
 	}
+	
 	@Override
 	public boolean isReadOnly() {
 		return true;
@@ -67,7 +71,7 @@ public class IteratorStackedSubmap<K,V> extends AccumuloSortedMap<K,V>{
 	}
 	@Override
 	public SerDe getValueSerde() {
-		return parent.getValueSerde();
+		return newValueSerde;
 	}
 	@Override
 	protected Authorizations getAuthorizations(){
