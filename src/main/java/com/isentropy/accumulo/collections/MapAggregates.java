@@ -75,35 +75,7 @@ public class MapAggregates {
 		StatisticalSummaryValues fullstats = AggregateSummaryStatistics.aggregate(perTabletStats);
 		return fullstats;
 	}
-	/*
-	protected static StatisticalSummary valueStats(Scanner s, Class keySerDe, Class valueSerDe){
-		try{	
-			IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, StatsAggregateIterator.class);
-			cfg.addOption(AggregateIterator.OPT_KEYSERDE, keySerDe.getName());
-			cfg.addOption(AggregateIterator.OPT_VALUESERDE, valueSerDe.getName());
 
-			s.addScanIterator(cfg);
-
-			List<SummaryStatistics> perTabletStats = new ArrayList<SummaryStatistics>();
-			for(Map.Entry<Key, Value> e : s){
-				SummaryStatistics stats = (SummaryStatistics) JavaSerializationSerde.javaDeserialize(e.getValue().get());
-				perTabletStats.add(stats);
-			}
-			StatisticalSummaryValues fullstats = AggregateSummaryStatistics.aggregate(perTabletStats);
-			return fullstats;
-		}
-		catch(Exception e){
-			log.warn(e.getMessage());
-			log.warn("Stats aggregation using tablet server iterator failed. Install accumulo-collections jar on the tablet servers.");
-		}
-		return null;
-	}
-	 */
-	/**
-	 * same as map.sizeAsLong()
-	 * @param map
-	 * @return
-	 */
 	public static long count(AccumuloSortedMapBase map){
 		AccumuloSortedMapBase tabletSummaries = map.derivedMapFromIterator(LongCountAggregateIterator.class, null,new LongBinarySerde());
 		Set<Map.Entry> s =tabletSummaries.entrySet();
@@ -113,40 +85,5 @@ public class MapAggregates {
 		}
 		return sum;
 	}
-	/**
-	 * counts total keys
-	 * @param s
-	 * @return
-	protected static long count(Scanner s){
-		try{	
-			return countUsingIterator(s);
-		}
-		catch(Exception e){
-			log.warn(e.getMessage());
-			log.warn("Table count using tablet server iterator failed. Install accumulo-collections jar on the tablet servers. "+
-					" Trying to run count(Scanner s) locally.");
-		}
-		return countClientSide(s);
-	}
-
-	protected static long countClientSide(Scanner s){
-		log.warn("countClientSide() is slow. Install accumulo-collections jar on tablet server and use countUsingIterator() instead");
-		long cnt = 0;
-		for(Map.Entry<Key, Value> e : s){
-			cnt++;
-		}
-		return cnt;
-	}
-	protected static long countUsingIterator(Scanner s){
-		IteratorSetting cfg = new IteratorSetting(Integer.MAX_VALUE, LongCountAggregateIterator.class);
-		s.addScanIterator(cfg);
-		long cnt = 0;
-		for(Map.Entry<Key, Value> e : s){
-			log.debug("kv: "+e.getKey()+"\t"+e.getValue());
-			cnt += Long.parseLong(e.getValue().toString());
-		}
-		return cnt;
-	}
-	*/
 
 }
