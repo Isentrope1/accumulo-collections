@@ -17,7 +17,8 @@ import com.isentropy.accumulo.collections.io.SerDe;
 	 AccumuloSortedMap.OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE, 
 	 which specify the classnames of serdes used by this map. 
 	 
-	 Your iterator should use these supplies SerDes.
+	 Your iterator should use these supplies SerDes, or just extend DeserializedFilter or
+	 DeserializedTransformingIterator, which handle serialization for you.
 
  */
 
