@@ -194,7 +194,7 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 	}
 
 	@Override
-	public AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
+	protected AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
 		return this;
 	}
 
