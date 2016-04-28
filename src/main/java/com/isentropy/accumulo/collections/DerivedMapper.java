@@ -12,14 +12,10 @@ import com.isentropy.accumulo.collections.io.SerDe;
  *  DerivedMapper wraps an iterator with options and a SerDe, and is passed to AccumuloSortedMap.deriveMap() 
  *  which wraps AccumuloSortedMap.derivedMapFromIterator().
  * 
-
-	 derivedMapFromIterator() will modify your supplied iterator options by adding
-	 AccumuloSortedMap.OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE, 
-	 which specify the classnames of serdes used by this map. 
-	 
-	 Your iterator should use these supplies SerDes, or just extend DeserializedFilter or
-	 DeserializedTransformingIterator, which handle serialization for you.
-
+ *  derivedMapFromIterator() will modify your supplied iterator options by adding 
+ *  AccumuloSortedMap.OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE, 
+ *  which specify the classnames of serdes used by this map.  Your iterator should use these supplied SerDes,
+ *  or just extend DeserializedFilter or DeserializedTransformingIterator, which handle serialization for you.
  */
 
 public interface DerivedMapper {
