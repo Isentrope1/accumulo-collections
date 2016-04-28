@@ -17,14 +17,15 @@ import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.user.TransformingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_OUTPUT_SERDE;
 
+import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.io.SerDe;
 
 public abstract class DeserializedTransformingIterator extends TransformingIterator implements OptionDescriber{
 	public static Logger log = LoggerFactory.getLogger(DeserializedTransformingIterator.class);
-	public static final String OPT_KEYSERDE = "keyserde";
-	public static final String OPT_VALUE_INPUT_SERDE = "value_input_serde";
-	public static final String OPT_VALUE_OUTPUT_SERDE = "value_output_serde";
 	protected SerDe key_serde = null;
 	protected SerDe value_input_serde = null;
 	protected SerDe value_output_serde = null;
@@ -34,7 +35,7 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 	public IteratorOptions describeOptions() {
 		String desc = "An iterator that wraps a AccumuloMapFilter to filter bytes on the tablet server";
 		HashMap<String,String> namedOptions = new HashMap<String,String>();
-		namedOptions.put(OPT_KEYSERDE, "serde for input keys");
+		namedOptions.put(OPT_KEY_SERDE, "serde for input keys");
 		namedOptions.put(OPT_VALUE_INPUT_SERDE, "serde for input values");
 		namedOptions.put(OPT_VALUE_OUTPUT_SERDE, "serde for output values");
 		return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);
@@ -43,7 +44,7 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 	@Override
 	public boolean validateOptions(Map<String,String> options) {
 		String o;
-		if((o = options.get(OPT_KEYSERDE)) != null){
+		if((o = options.get(OPT_KEY_SERDE)) != null){
 			try{
 				SerDe s= (SerDe) Class.forName(o).newInstance();
 			}
@@ -51,6 +52,9 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 				log.error("Error instantiating SerDe "+o+": "+e.getMessage());
 				return false;
 			}
+		}
+		else{
+			return false;
 		}
 		if((o = options.get(OPT_VALUE_INPUT_SERDE)) != null){
 			try{
@@ -60,6 +64,9 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 				log.error("Error instantiating SerDe "+o+": "+e.getMessage());
 				return false;
 			}
+		}
+		else{
+			return false;
 		}
 		if((o = options.get(OPT_VALUE_OUTPUT_SERDE)) != null){
 			try{
@@ -77,12 +84,14 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 		super.init(source,options,env);
 		String o;
 		try{
-			if((o = options.get(OPT_KEYSERDE)) != null)
+			if((o = options.get(OPT_KEY_SERDE)) != null)
 				key_serde = (SerDe) Class.forName(o).newInstance();
 			if((o = options.get(OPT_VALUE_INPUT_SERDE)) != null)
 				value_input_serde = (SerDe) Class.forName(o).newInstance();
 			if((o = options.get(OPT_VALUE_OUTPUT_SERDE)) != null)
 				value_output_serde = (SerDe) Class.forName(o).newInstance();
+			if(value_output_serde == null)
+				value_output_serde = value_input_serde;
 		}
 		catch(Exception e){
 			throw new IOException(e);

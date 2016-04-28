@@ -33,6 +33,9 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
 
 import com.isentropy.accumulo.collections.io.SerDe;
 /**
@@ -42,8 +45,6 @@ import com.isentropy.accumulo.collections.io.SerDe;
 
 public abstract class DeserializedFilter extends Filter{
 	public static Logger log = LoggerFactory.getLogger(DeserializedFilter.class);
-	public static final String OPT_KEYSERDE = "keyserde";
-	public static final String OPT_VALUESERDE = "valueserde";
 	// serde can be null if the iterator doesn't actually need to interpret values (eg for count)
 	protected SerDe key_serde = null;
 	protected SerDe value_serde = null;
@@ -60,15 +61,15 @@ public abstract class DeserializedFilter extends Filter{
 	public IteratorOptions describeOptions() {
 		String desc = "An iterator that wraps a AccumuloMapFilter to filter bytes on the tablet server";
 		HashMap<String,String> namedOptions = new HashMap<String,String>();
-		namedOptions.put(OPT_KEYSERDE, "serde for keys. only needed if parsing key bytes");
-		namedOptions.put(OPT_VALUESERDE, "serde for values. only needed if parsing value bytes");
+		namedOptions.put(OPT_KEY_SERDE, "serde for keys. only needed if parsing key bytes");
+		namedOptions.put(OPT_VALUE_INPUT_SERDE, "serde for values. only needed if parsing value bytes");
 		return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);
 	}
 
 	@Override
 	public boolean validateOptions(Map<String,String> options) {
 		String o;
-		if((o = options.get(OPT_KEYSERDE)) != null){
+		if((o = options.get(OPT_KEY_SERDE)) != null){
 			try{
 				SerDe s= (SerDe) Class.forName(o).newInstance();
 			}
@@ -77,7 +78,7 @@ public abstract class DeserializedFilter extends Filter{
 				return false;
 			}
 		}
-		if((o = options.get(OPT_VALUESERDE)) != null){
+		if((o = options.get(OPT_VALUE_INPUT_SERDE)) != null){
 			try{
 				SerDe s= (SerDe) Class.forName(o).newInstance();
 			}
@@ -94,9 +95,9 @@ public abstract class DeserializedFilter extends Filter{
 		super.init(source,options,env);
 		String o;
 		try{
-			if((o = options.get(OPT_KEYSERDE)) != null)
+			if((o = options.get(OPT_KEY_SERDE)) != null)
 				key_serde = (SerDe) Class.forName(o).newInstance();
-			if((o = options.get(OPT_VALUESERDE)) != null)
+			if((o = options.get(OPT_VALUE_INPUT_SERDE)) != null)
 				value_serde = (SerDe) Class.forName(o).newInstance();
 		}
 		catch(Exception e){

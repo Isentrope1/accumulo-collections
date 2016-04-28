@@ -22,6 +22,7 @@ limitations under the License.
 package com.isentropy.accumulo.collections;
 
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,14 @@ import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.util.Util;
 
 public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
+	/*
+	 * iterators used in deriveMap will be passed SerDe classname info via these iterator params
+	 */
+	public static final String OPT_KEY_SERDE = "key_serde";
+	public static final String OPT_VALUE_INPUT_SERDE = "value_input_serde";
+	public static final String OPT_VALUE_OUTPUT_SERDE = "value_output_serde";
+
+	
 	private static final int DEFAULT_RANDSEED_LENGTH=20;
 
 	public abstract boolean isReadOnly();
@@ -78,6 +87,30 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 *  This method allows 
 	 */
 	public  abstract AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
+	
+/**
+ * wraps derivedMapFromIterator and add iterator options OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE
+ * that specify the classname of the key and value serdes used by this map
+
+ * if mapper.getDerivedMapValueSerde() == null, OPT_VALUE_OUTPUT_SERDE will be set to same value as OPT_VALUE_INPUT_SERDE
+   and derivedMapFromIterator will be passed the current map's value serde
+ * @param mapper
+ * @return
+ */
+	public AccumuloSortedMapBase<K,V> deriveMap(DerivedMapper mapper){
+		Map<String,String> opts = mapper.getIteratorOptions();
+		if(opts == null)
+			opts = new HashMap<String,String>();
+		opts.put(OPT_KEY_SERDE, getKeySerde().getClass().getName());
+		opts.put(OPT_VALUE_INPUT_SERDE, getValueSerde().getClass().getName());
+		SerDe output_value_serde = mapper.getDerivedMapValueSerde();
+		if(output_value_serde != null)
+			opts.put(OPT_VALUE_OUTPUT_SERDE, output_value_serde.getClass().getName());
+		else
+			opts.put(OPT_VALUE_OUTPUT_SERDE, getValueSerde().getClass().getName());
+			
+		return derivedMapFromIterator(mapper.getIterator(),opts, output_value_serde == null ? getValueSerde():output_value_serde);
+	}
 
 	public abstract AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed,long max_timestamp);
 	public final AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
