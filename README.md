@@ -1,9 +1,8 @@
 
 Accumulo Collections v0.1 README
 
-Accumulo Collections is a library by Isentropy that contains implementations of Java Collections backed by an Accumulo instance. Accumulo is itself a high performance, distributed, sorted map of byte arrays, and our AccumuloSortedMap is a robust java SortedMap implementation that simplifies Human-Accumulo Interaction by allowing developers to leverage the power and distributed features of Accumulo using the simple, familiar Java Collections interface. [AccumuloSortedMap](https://github.com/isentropy/accumulo-collections/blob/master/src/main/java/com/isentropy/accumulo/collections/AccumuloSortedMap.java) also provides a number of extra features that are not normally seen in java Collections like entry timeout, server-side aggregates, partitioning and sampling. When used with a properly configured Accumulo and backing HDFS, the collections are distributed, fault tolerant, concurrently accessible, fast and enormously scalable.
+Accumulo Collections is a library by [Isentropy](http://isentropy.com) that contains implementations of Java Collections backed by an [Accumulo](https://accumulo.apache.org) instance. Accumulo is a giant sorted map with rich server-side functionality, and our [AccumuloSortedMap](https://github.com/isentropy/accumulo-collections/blob/master/src/main/java/com/isentropy/accumulo/collections/AccumuloSortedMap.java) is a robust java [SortedMap](https://docs.oracle.com/javase/7/docs/api/java/util/SortedMap.html) implementation that simplifies human-Accumulo interaction by allowing developers to use the powerful distributed features of Accumulo via the familiar Java Collections interface. When used with a properly configured Accumulo and backing [HDFS](https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html), the collections are distributed, fault tolerant, concurrently accessible, fast and enormously scalable. 
 
-Documentation is here: https://github.com/isentropy/accumulo-collections/wiki
+AccumuloSortedMap also provides a number of extra features that are not normally seen in java Collections like entry timeout, server-side aggregates, partitioning and sampling. Accumulo [iterators](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_iterators) can be stacked seamlessly over existing maps to make new, derived maps. 
 
-Email bug reports and feature requests to jwolff@isentropy.com.
-
+Documentation is [here](https://github.com/isentropy/accumulo-collections/wiki).
