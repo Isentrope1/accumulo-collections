@@ -86,8 +86,6 @@ public abstract class DeserializedFilter extends Filter{
 				return false;
 			}
 		}
-		
-
 		return true;
 	}
 
@@ -109,7 +107,7 @@ public abstract class DeserializedFilter extends Filter{
 	protected abstract boolean acceptDeserialized(Object key, Object value);
 
 	@Override
-	public boolean accept(Key k, Value v) {
+	public final boolean accept(Key k, Value v) {
 		return acceptDeserialized(key_serde.deserialize(k.getRowData().toArray()), value_serde.deserialize(v.get()));
 	}
 
