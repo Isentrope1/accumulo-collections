@@ -55,20 +55,10 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 		};
 	}
 
-	@Override
-	public SortedMap<K, V> subMap(K fromKey, K toKey) {
+	public AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2){
 		return this;
 	}
 
-	@Override
-	public SortedMap<K, V> headMap(K toKey) {
-		return this;
-	}
-
-	@Override
-	public SortedMap<K, V> tailMap(K fromKey) {
-		return this;
-	}
 
 	@Override
 	public K firstKey() {

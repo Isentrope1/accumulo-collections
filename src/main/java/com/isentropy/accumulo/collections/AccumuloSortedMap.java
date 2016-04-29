@@ -472,13 +472,14 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	}
 
 	/**
-	 * always returns a AccumuloSortedMapInterface
+	 * always returns a AccumuloSortedMapBase
 	 * null accepted as no limit. returned map is READ ONLY
 	 * @param fromKey
 	 * @param toKey
 	 * @return
 	 */
-	protected AccumuloSortedMapBase<K, V> subMapNullAccepted(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
+	@Override
+	public AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
 		final AccumuloSortedMap<K, V> parent = this;
 		Scanner s;
 		try {
@@ -560,24 +561,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		};
 
 
-	}
-
-	/**
-	 * returns an instance of AccumuloSortedMapInterface
-	 */
-	@Override
-	public AccumuloSortedMapBase<K, V> subMap(K fromKey, K toKey) {
-		return subMapNullAccepted(fromKey,true,toKey,true);
-	}
-
-	@Override
-	public AccumuloSortedMapBase<K, V> headMap(K toKey) {
-		return subMapNullAccepted(null,true,toKey,false);
-	}
-
-	@Override
-	public AccumuloSortedMapBase<K, V> tailMap(K fromKey) {
-		return subMapNullAccepted(fromKey,true,null,true);
 	}
 
 	@Override

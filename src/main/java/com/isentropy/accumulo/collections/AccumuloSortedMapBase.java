@@ -126,6 +126,25 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public final AccumuloSortedMapBase<K, V> sample(final double fraction){
 		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
 	}
+	
+	public abstract AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2);
+
+	
+	@Override
+	public final AccumuloSortedMapBase<K, V> subMap(K fromKey, K toKey) {
+		return subMap(fromKey,true,toKey,true);
+	}
+
+	@Override
+	public final AccumuloSortedMapBase<K, V> headMap(K toKey) {
+		return subMap(null,true,toKey,false);
+	}
+
+	@Override
+	public final AccumuloSortedMapBase<K, V> tailMap(K fromKey) {
+		return subMap(fromKey,true,null,true);
+	}
+
 
 	/**
 	 * dumps key/values to stream. for debugging
