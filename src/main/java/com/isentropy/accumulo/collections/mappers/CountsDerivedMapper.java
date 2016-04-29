@@ -29,29 +29,29 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.isentropy.accumulo.collections.DerivedMapper;
-import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
+import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.io.SerDe;
-import com.isentropy.accumulo.iterators.StatsAggregateIterator;
+import com.isentropy.accumulo.iterators.LongCountAggregateIterator;
 
 /**
- * derives a map of (last key seen per tablet server, stats of seen Numbers per tablet server)
+ * derives a map of (last key seen per tablet server, count of seen entries per tablet server)
  */
-public class StatsDerivedMapper implements DerivedMapper{
+
+public class CountsDerivedMapper implements DerivedMapper{
 
 	@Override
 	public Class<? extends SortedKeyValueIterator<Key, Value>> getIterator() {
-		return StatsAggregateIterator.class;
+		return LongCountAggregateIterator.class;
 	}
 
 	@Override
 	public Map<String, String> getIteratorOptions() {
-		//nothing special needed to add
 		return null;
 	}
 
 	@Override
 	public SerDe getDerivedMapValueSerde() {
-		return new JavaSerializationSerde();
+		return new LongBinarySerde();
 	}
 
 }

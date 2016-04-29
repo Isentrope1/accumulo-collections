@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
 import com.isentropy.accumulo.collections.mappers.StatsDerivedMapper;
 import com.isentropy.accumulo.iterators.AggregateIterator;
 import com.isentropy.accumulo.iterators.LongCountAggregateIterator;
@@ -74,8 +75,8 @@ public class MapAggregates {
 	}
 
 	public static long count(AccumuloSortedMapBase map){
-		AccumuloSortedMapBase tabletSummaries = map.derivedMapFromIterator(LongCountAggregateIterator.class, null,new LongBinarySerde());
-		Set<Map.Entry> s =tabletSummaries.entrySet();
+		AccumuloSortedMapBase tabletCounts = map.deriveMap(new CountsDerivedMapper());
+		Set<Map.Entry> s = tabletCounts.entrySet();
 		long sum=0;
 		for(Map.Entry e : s){
 			sum += (Long) e.getValue();
