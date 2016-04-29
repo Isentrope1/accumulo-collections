@@ -163,6 +163,8 @@ public class AccumuloMapTest
 			assertTrue(asm.firstKey().equals(0l));
 			assertTrue(asm.get(100).equals(200l));
 			assertTrue(asm.size() == 1000);
+
+			
 			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);
 			boolean err = false;
 			try{
@@ -173,9 +175,7 @@ public class AccumuloMapTest
 			}
 			// put should throw err in submap
 			assertTrue(err);
-			
-			assertTrue(submap.size() == 10);
-			submap=(AccumuloSortedMapBase) submap.subMap(11, 33);
+			submap = submap.subMap(11, 33);
 			assertTrue(submap.size() == 9);
 			System.out.println("submap(10,20).submap(11,33)");
 			printCollections(submap);

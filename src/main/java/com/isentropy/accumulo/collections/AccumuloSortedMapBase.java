@@ -127,12 +127,26 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
 	}
 	
-	public abstract AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2);
+	/**
+	 * the end include booleans DONT WORK currently because of bug in Accumulo:
+	 * 
+	 * "There is a Java proxy bug in the scanner. If you create a BatchScanner, every range assigned to it has startInclusive=true, endInclusive=false."
+	 * from https://github.com/accumulo/pyaccumulo/issues/14
+	 * 
+	 * keeping this method protected until the bug is fixed
+	 * 
+	 * @param fromKey
+	 * @param inc1
+	 * @param toKey
+	 * @param inc2
+	 * @return
+	 */
+	protected abstract AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2);
 
 	
 	@Override
 	public final AccumuloSortedMapBase<K, V> subMap(K fromKey, K toKey) {
-		return subMap(fromKey,true,toKey,true);
+		return subMap(fromKey,true,toKey,false);
 	}
 
 	@Override
