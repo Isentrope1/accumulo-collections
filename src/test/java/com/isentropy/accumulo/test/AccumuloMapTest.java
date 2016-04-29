@@ -23,6 +23,7 @@ limitations under the License.
 package com.isentropy.accumulo.test;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -79,6 +80,7 @@ public class AccumuloMapTest
 		for(long i=0;i<1000;i++){
 			asm.put(i, 2*i);
 		}
+		
 		
 		// MAP FEATURES
 		System.out.println("get(100) = "+asm.get(100));
@@ -148,11 +150,18 @@ public class AccumuloMapTest
     	  	Connector c = new MockInstance().getConnector("root", new PasswordToken());
         	//set up map load [x,2*x] for x in 1 to 1000
         	AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+        	long preaddts = System.currentTimeMillis();
         	asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
         	for(long i=0;i<1000;i++){
 				asm.put(i, 2*i);
 			}
+        	long postaddts = System.currentTimeMillis();
+        	long ts123 = asm.getTimestamp(123);
+        	System.out.println("ts123 = " + new Date(ts123));
+			assertTrue(ts123 >= preaddts && ts123 <= postaddts);
+        	assertNull(asm.get(-1));
 			assertTrue(asm.firstKey().equals(0l));
+			assertTrue(asm.get(100).equals(200l));
 			assertTrue(asm.size() == 1000);
 			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);
 			boolean err = false;

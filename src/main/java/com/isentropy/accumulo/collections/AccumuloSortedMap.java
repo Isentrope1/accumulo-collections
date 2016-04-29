@@ -336,8 +336,8 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
-	@Override
-	public V get(Object key) {
+	
+	protected Entry<Key, Value> getEntry(Object key) {
 		Scanner	s;
 		try {
 			s = getScanner();
@@ -353,10 +353,27 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		Iterator<Entry<Key, Value>> it = s.iterator();
 		if(it.hasNext()){
 			Entry<Key, Value> e = it.next();
-			return (V) getValueSerde().deserialize(e.getValue().get());
+			return e;
 		}
 		return null;
 	}
+	
+	@Override
+	public V get(Object key) {
+		Entry<Key, Value> e = getEntry(key);
+		if(e == null)
+			return null;
+		return (V) getValueSerde().deserialize(e.getValue().get());		
+	}
+	
+	@Override
+	public long getTimestamp(K key){
+		Entry<Key, Value> e = getEntry(key);
+		if(e == null)
+			return -1;
+		return e.getKey().getTimestamp();		
+	}
+
 
 	protected BatchWriterConfig getBatchWriterConfig(){
 		BatchWriterConfig bwc = new BatchWriterConfig();

@@ -1,6 +1,8 @@
 package com.isentropy.accumulo.experimental.test;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Connector;
@@ -53,7 +55,18 @@ extends TestCase
 			for(long i=0;i<1000;i++){
 				asm.put(i, 2*i);
 			}
-			asm.deriveMap(jsFilter("k % 2 == 0")).deriveMap(jsTransform("v*5")).sample(.1).dump(System.out);
+			asm.subMap(100, 200).sample(.5).deriveMap(jsFilter("k % 2 == 0")).deriveMap(jsTransform("v*5")).dump(System.out);
+			
+			
+			AccumuloSortedMap mapOfLongToMap = new AccumuloSortedMap(c,"mytable2");
+			for(long x=0;x<10;x++){
+				Map m = new HashMap();
+				m.put("twox", 2*x);
+				m.put("threex", 3*x);
+				mapOfLongToMap.put(x,m);
+			}
+			// this is a map of [x,6x]
+			mapOfLongToMap.deriveMap(jsTransform("k + v['twox'] + v['threex']")).dump(System.out);;
 		}
 		
 		catch(Exception e){

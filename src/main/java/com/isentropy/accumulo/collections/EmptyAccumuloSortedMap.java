@@ -203,5 +203,10 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 			double to_fraction, String randSeed, long max_timestamp) {
 			return this;
 	}
+	
+	@Override
+	public long getTimestamp(K key){
+		return -1;
+	}
 
 }

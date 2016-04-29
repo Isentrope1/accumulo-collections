@@ -83,6 +83,13 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public abstract void clear();
 
 	/**
+	 * 
+	 * @param key
+	 * @return the accumulo timestamp (mod time) of the key of -1 if key is absent
+	 */
+	public abstract long getTimestamp(K key);
+
+	/**
 	 *
 	 *  This method allows 
 	 */
