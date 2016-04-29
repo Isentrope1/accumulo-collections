@@ -20,28 +20,35 @@ See the License for the specific language governing permissions and
 limitations under the License.
  */
 
-package com.isentropy.accumulo.iterators;
+package com.isentropy.accumulo.collections.mappers;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.isentropy.accumulo.collections.io.LongBinarySerde;
-import com.isentropy.accumulo.iterators.AggregateIterator.KeyValue;
+import com.isentropy.accumulo.collections.DerivedMapper;
+import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
+import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.iterators.StatsAggregateIterator;
 
-public class LongCountAggregateIterator extends AggregateIterator{
+public class StatsDerivedMapper implements DerivedMapper{
+
 	@Override
-	protected KeyValue aggregate() throws IOException{
-		long count=0;
-		Key k = null;
-		while(getSource().hasTop()){
-			k = getSource().getTopKey();
-			Value v = getSource().getTopValue();
-			count++;
-			getSource().next();
-		}
-		return new KeyValue(k,new Value(LongBinarySerde.longSerialize(count)));
+	public Class<? extends SortedKeyValueIterator<Key, Value>> getIterator() {
+		return StatsAggregateIterator.class;
 	}
+
+	@Override
+	public Map<String, String> getIteratorOptions() {
+		//nothing special needed to add
+		return null;
+	}
+
+	@Override
+	public SerDe getDerivedMapValueSerde() {
+		return new JavaSerializationSerde();
+	}
+
 }

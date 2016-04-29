@@ -33,7 +33,13 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
 
+
+/**
+ * output value is JavaSerialized SummaryStatistics object
+ */
 public class StatsAggregateIterator extends AggregateIterator{
 	
 	protected SummaryStatistics stats = new SummaryStatistics();
@@ -43,12 +49,7 @@ public class StatsAggregateIterator extends AggregateIterator{
 	public boolean validateOptions(Map<String,String> options) {
 		if(!super.validateOptions(options))
 			return false;
-		return options.containsKey(OPT_VALUESERDE);
-	}
-
-	@Override
-	protected byte[] getAggregateColqual(){
-		return "stats".getBytes(StandardCharsets.UTF_8);
+		return options.containsKey(OPT_VALUE_INPUT_SERDE);
 	}
 	
 	@Override

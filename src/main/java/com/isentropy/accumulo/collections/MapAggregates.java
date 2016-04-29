@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.mappers.StatsDerivedMapper;
 import com.isentropy.accumulo.iterators.AggregateIterator;
 import com.isentropy.accumulo.iterators.LongCountAggregateIterator;
 import com.isentropy.accumulo.iterators.StatsAggregateIterator;
@@ -61,11 +62,7 @@ public class MapAggregates {
 	 * @return
 	 */
 	public static StatisticalSummary valueStats(AccumuloSortedMapBase map){
-		Map<String,String> opts = new HashMap<String,String>();
-		opts.put(AggregateIterator.OPT_KEYSERDE, map.getKeySerde().getClass().getName());
-		opts.put(AggregateIterator.OPT_VALUESERDE, map.getKeySerde().getClass().getName());
-
-		AccumuloSortedMapBase tabletSummaries = map.derivedMapFromIterator(StatsAggregateIterator.class, opts,new JavaSerializationSerde());
+		AccumuloSortedMapBase tabletSummaries = map.deriveMap(new StatsDerivedMapper());
 		List<SummaryStatistics> perTabletStats = new ArrayList<SummaryStatistics>();
 		Set<Map.Entry> s =tabletSummaries.entrySet();
 		for(Map.Entry e : s){

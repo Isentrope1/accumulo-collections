@@ -48,7 +48,9 @@ public abstract class DeserializedFilter extends Filter{
 	// serde can be null if the iterator doesn't actually need to interpret values (eg for count)
 	protected SerDe key_serde = null;
 	protected SerDe value_serde = null;
-	
+
+	protected abstract boolean acceptDeserialized(Object key, Object value);
+
 	
 	SecureClassLoader cl = new SecureClassLoader(){
 		public Class deserialize(byte[] classBytes){
@@ -104,8 +106,6 @@ public abstract class DeserializedFilter extends Filter{
 			throw new IOException(e);
 		}
 	}
-
-	protected abstract boolean acceptDeserialized(Object key, Object value);
 
 	@Override
 	public final boolean accept(Key k, Value v) {
