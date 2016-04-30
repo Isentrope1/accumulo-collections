@@ -22,8 +22,10 @@ limitations under the License.
 
 package com.isentropy.accumulo.test;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -163,6 +165,24 @@ public class AccumuloMapTest
 			assertTrue(asm.firstKey().equals(0l));
 			assertTrue(asm.get(100).equals(200l));
 			assertTrue(asm.size() == 1000);
+			
+			AccumuloSortedMap copyOfAsm = new AccumuloSortedMap(c,"othertable");
+			copyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			copyOfAsm.putAll(asm);
+			int sz = asm.size();
+			assertTrue(copyOfAsm.size() == sz);
+			assertTrue(copyOfAsm.get(101l).equals(202l));
+			HashMap toAdd = new HashMap();
+			for(int x=1000;x<1010;x++)
+				toAdd.put(x, 3*x);
+			copyOfAsm.putAll(toAdd);
+			assertTrue(copyOfAsm.size() == sz+10);
+			copyOfAsm.remove(0l);
+			assertTrue(copyOfAsm.size() == sz+9);
+			
+			
+
+			//asm.subMap(0, 5).dump(System.out);
 
 			
 			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);

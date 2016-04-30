@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -336,7 +337,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
-	
+
 	protected Entry<Key, Value> getEntry(Object key) {
 		Scanner	s;
 		try {
@@ -357,7 +358,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 		return null;
 	}
-	
+
 	@Override
 	public V get(Object key) {
 		Entry<Key, Value> e = getEntry(key);
@@ -365,7 +366,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			return null;
 		return (V) getValueSerde().deserialize(e.getValue().get());		
 	}
-	
+
 	@Override
 	public long getTimestamp(K key){
 		Entry<Key, Value> e = getEntry(key);
@@ -381,6 +382,19 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return bwc;
 	}
 
+	/**
+	 * 
+	 * @param key
+	 * @param value
+	 * @param bw
+	 * @throws MutationsRejectedException
+	 */
+	protected void put(K key, V value, BatchWriter bw) throws MutationsRejectedException {
+		Mutation m = new Mutation(getKey(key).getRowData().toArray());
+		m.put(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()), getValueSerde().serialize(value));
+		bw.addMutation(m);		
+	}
+
 	@Override
 	public V put(K key, V value) {
 		if(isReadOnly())
@@ -388,11 +402,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		try {
 			V prev = this.get(key);
 			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
-			Mutation m = new Mutation(getKey(key).getRowData().toArray());
-
-			m.put(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()), getValueSerde().serialize(value));
-			bw.addMutation(m);
-			
+			put(key, value,bw);
 			bw.flush();
 			bw.close();
 			//dump(System.out);
@@ -415,6 +425,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			m.putDelete(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()));
 			bw.addMutation(m);
 			bw.flush();
+			bw.close();
 			return prev;
 		}
 		catch(Exception e){
@@ -423,15 +434,30 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
+	/**
+	 * this method is optimized for batch writing. 
+	 * it should be faster than repeated calls to put(), which flushes BatchWriter after each entry
+	 */
+	
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 
-		for(Entry<? extends K, ? extends V> e :m.entrySet()){
-			put(e.getKey(),e.getValue());
+		try{
+			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+			for(Entry<? extends K, ? extends V> e :m.entrySet()){
+				put(e.getKey(), e.getValue(),bw);
+			}
+			bw.flush();
+			bw.close();
+		}
+		catch(Exception e){
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
 		}
 	}
+	
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#delete()
 	 */
