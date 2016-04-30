@@ -89,13 +89,12 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 */
 	public abstract long getTimestamp(K key);
 
-	/**
-	 *
-	 *  This method allows 
-	 */
+
 	protected abstract AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
 	
 /**
+ * Create a derived map by stacking an iterator and options specified by a DerivedMapper.
+ * 
  * wraps derivedMapFromIterator and add iterator options OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE
  * that specify the classname of the key and value serdes used by this map
 

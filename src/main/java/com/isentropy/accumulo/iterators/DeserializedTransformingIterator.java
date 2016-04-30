@@ -57,7 +57,7 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 	 * 
 	 * @param key
 	 * @param value
-	 * @return
+	 * @return the output object. the output key is the input key
 	 * @throws IOException
 	 */
 	protected abstract Object transform(Object key,Object value) throws IOException;

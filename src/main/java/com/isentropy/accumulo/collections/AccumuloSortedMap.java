@@ -381,7 +381,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return bwc;
 	}
 
-
 	@Override
 	public V put(K key, V value) {
 		if(isReadOnly())
@@ -393,6 +392,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 
 			m.put(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()), getValueSerde().serialize(value));
 			bw.addMutation(m);
+			
 			bw.flush();
 			bw.close();
 			//dump(System.out);
