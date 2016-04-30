@@ -52,70 +52,70 @@ import junit.framework.TestSuite;
  * Unit test for simple App.
  */
 public class AccumuloMapTest 
-    extends TestCase
+extends TestCase
 {
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AccumuloMapTest( String testName )
-    {
-        super( testName );
-    }
+	/**
+	 * Create the test case
+	 *
+	 * @param testName name of the test case
+	 */
+	public AccumuloMapTest( String testName )
+	{
+		super( testName );
+	}
 
-    /**
-     * @return the suite of tests being tested
-     */
-    public static Test suite()
-    {
-        return new TestSuite( AccumuloMapTest.class );
-    }
+	/**
+	 * @return the suite of tests being tested
+	 */
+	public static Test suite()
+	{
+		return new TestSuite( AccumuloMapTest.class );
+	}
 
-    public void demo() throws AccumuloException, AccumuloSecurityException, InterruptedException{
-    	//connect to accumulo
-    	//Connector c = new ZooKeeperInstance(instanceName,zookeepers).getConnector(myUsername, new PasswordToken(myPassword));
-    	Connector c = new MockInstance().getConnector("root", new PasswordToken());
-    	//set up map load [x,2*x] for x in 1 to 1000
-    	AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
-    	asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+	public void demo() throws AccumuloException, AccumuloSecurityException, InterruptedException{
+		//connect to accumulo
+		//Connector c = new ZooKeeperInstance(instanceName,zookeepers).getConnector(myUsername, new PasswordToken(myPassword));
+		Connector c = new MockInstance().getConnector("root", new PasswordToken());
+		//set up map load [x,2*x] for x in 1 to 1000
+		AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+		asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
 		for(long i=0;i<1000;i++){
 			asm.put(i, 2*i);
 		}
-		
-		
+
+
 		// MAP FEATURES
 		System.out.println("get(100) = "+asm.get(100));
 		// SORTED MAP FEATURES
 		AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20).subMap(11, 30);
 		submap.dump(System.out);
-		
+
 		// should be null
 		System.out.println("submap(10,20).get(100) = "+submap.get(100));
 		//should be 10
 		System.out.println("submap(10,20).firstKey() = "+submap.firstKey());
-		
-		
+
+
 		System.out.println("sample: "+asm.sample(.5).subMap(0, 100).size());
-		
-		
+
+
 		// SAMPLING
 		// sample 50% of submap and print key values
 		submap.sample(.5).dump(System.out); System.out.println();
 		// this should be a DIFFERENT set because the seed is random in both calls to sample()
 		submap.sample(.5).dump(System.out); System.out.println();
-		
+
 		// sample 40% of entries based on the ordering of seed "randomseed"
 		submap.sample(0,.4,"randomseed").dump(System.out); System.out.println();
 		// should be the SAME set as above if map hasn't changed because seed and hash range are the same
 		submap.sample(0,.4,"randomseed").dump(System.out); System.out.println();
-		
+
 		// SERVER-SIDE aggregates
 		//numerical stats work for values that are instances of Number
 		System.out.println("submap value mean = "+MapAggregates.valueStats(submap).getMean());
 		//size() is also computed on tablet servers
 		System.out.println("submap size = "+submap.size());
-		
+
 		//TIMEOUT features
 		asm.setTimeOutMs(5000);
 		Thread.sleep(3000);
@@ -123,10 +123,10 @@ public class AccumuloMapTest
 		Thread.sleep(2000);
 		//all entries except 123 will have timed out by now. size should be 1
 		System.out.println("map size after sleep = "+asm.size());
-		
-    }
-    
-    private void printCollections(AccumuloSortedMapBase map){
+
+	}
+
+	private void printCollections(AccumuloSortedMapBase map){
 		Iterator it = map.entrySet().iterator();
 		for(;it.hasNext();){
 			Entry e = (Entry) it.next();
@@ -142,30 +142,63 @@ public class AccumuloMapTest
 		}
 		StatisticalSummary ssmStats = MapAggregates.valueStats(map);
 		System.out.println("map stats:\n"+ssmStats);
-		
-		
-    }
-    
-    public void testApp()
-    {
-    	try{
-    	  	Connector c = new MockInstance().getConnector("root", new PasswordToken());
-        	//set up map load [x,2*x] for x in 1 to 1000
-        	AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
-        	long preaddts = System.currentTimeMillis();
-        	asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
-        	for(long i=0;i<1000;i++){
+
+
+	}
+	public static class ImportSimulationIterator implements Iterator<Entry>{
+		int count;
+		public ImportSimulationIterator(int numinserts){
+			count = numinserts;
+		}
+		@Override
+		public boolean hasNext() {
+			return count > 0;
+		}
+
+		@Override
+		public Entry next() {
+			final int c = count--;
+			return new Entry(){
+				@Override
+				public Object getKey() {
+					return c;
+				}
+
+				@Override
+				public Object getValue() {
+					return c+1;
+				}
+
+				@Override
+				public Object setValue(Object value) {
+					// TODO Auto-generated method stub
+					return null;
+				}
+			};
+		}
+
+	}
+
+	public void testApp()
+	{
+		try{
+			Connector c = new MockInstance().getConnector("root", new PasswordToken());
+			//set up map load [x,2*x] for x in 1 to 1000
+			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+			long preaddts = System.currentTimeMillis();
+			asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			for(long i=0;i<1000;i++){
 				asm.put(i, 2*i);
 			}
-        	long postaddts = System.currentTimeMillis();
-        	long ts123 = asm.getTimestamp(123);
-        	System.out.println("ts123 = " + new Date(ts123));
+			long postaddts = System.currentTimeMillis();
+			long ts123 = asm.getTimestamp(123);
+			System.out.println("ts123 = " + new Date(ts123));
 			assertTrue(ts123 >= preaddts && ts123 <= postaddts);
-        	assertNull(asm.get(-1));
+			assertNull(asm.get(-1));
 			assertTrue(asm.firstKey().equals(0l));
 			assertTrue(asm.get(100).equals(200l));
 			assertTrue(asm.size() == 1000);
-			
+
 			AccumuloSortedMap copyOfAsm = new AccumuloSortedMap(c,"othertable");
 			copyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
 			copyOfAsm.putAll(asm);
@@ -179,12 +212,16 @@ public class AccumuloMapTest
 			assertTrue(copyOfAsm.size() == sz+10);
 			copyOfAsm.remove(0l);
 			assertTrue(copyOfAsm.size() == sz+9);
-			
-			
+			copyOfAsm.clear();
+			assertTrue(copyOfAsm.size() == 0);
+			copyOfAsm.importAll(new ImportSimulationIterator(10));
+			assertTrue(copyOfAsm.size() == 10);
+			assertTrue(copyOfAsm.get(1l).equals(2l));
+			copyOfAsm.dump(System.out);
 
 			//asm.subMap(0, 5).dump(System.out);
 
-			
+
 			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);
 			boolean err = false;
 			try{
@@ -201,12 +238,12 @@ public class AccumuloMapTest
 			printCollections(submap);
 			System.out.println("submap(10,20).submap(11,33).sample(.5)");
 			printCollections(submap.sample(.5));
-			
-			
+
+
 			AccumuloSortedMapBase sample = asm.sample(.5);
 			System.out.println("sample(.5).sample(.1)");
 			printCollections(sample.sample(.1));
-			
+
 			asm.setTimeOutMs(5000);
 			Thread.sleep(3000);
 			asm.put(123, 345);
@@ -214,11 +251,11 @@ public class AccumuloMapTest
 			//all entries except 123 will have timed out by now. size should be 1
 			System.out.println("map size after sleep = "+asm.size());
 			assertTrue(asm.size() == 1);
-		
-    	}
-    	catch(Exception e){
-    		e.printStackTrace();
-            fail();
-    	}
-    }
+
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			fail();
+		}
+	}
 }

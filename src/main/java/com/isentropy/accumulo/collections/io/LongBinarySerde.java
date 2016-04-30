@@ -37,6 +37,12 @@ import com.isentropy.accumulo.util.Util;
 public class LongBinarySerde implements SerDe{
 	public static Logger log = LoggerFactory.getLogger(LongBinarySerde.class);
 
+	/**
+	 * converts non-long Numbers to long via .longValue() before serializing. 
+	 * also works on objects where .toString() represents a long.
+	 * @param o
+	 * @return
+	 */
 	public static byte[] longSerialize(Object o){	
 		ByteArrayOutputStream bos = new ByteArrayOutputStream() ;
 		ObjectOutputStream out;

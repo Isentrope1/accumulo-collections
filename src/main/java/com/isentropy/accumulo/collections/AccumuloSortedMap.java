@@ -457,6 +457,28 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			throw new RuntimeException(e);
 		}
 	}
+	/**
+	 * for bulk import. unlike put(), does not flush BatchWriter after each entry
+	 * @param it
+	 */
+	public void importAll(Iterator<Map.Entry<? extends K, ? extends V>> it) {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+
+		try{
+			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+			for(;it.hasNext();){
+				Entry<? extends K, ? extends V> e = it.next();
+				put(e.getKey(), e.getValue(),bw);
+			}
+			bw.flush();
+			bw.close();
+		}
+		catch(Exception e){
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
 	
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#delete()
