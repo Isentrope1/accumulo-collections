@@ -6,3 +6,5 @@ Accumulo Collections is a library by [Isentropy](http://isentropy.com) that cont
 AccumuloSortedMap also provides a number of extra features that are not normally seen in java Collections like entry timeout, server-side aggregates, partitioning and sampling. Accumulo [iterators](https://accumulo.apache.org/1.7/accumulo_user_manual.html#_iterators) can be stacked seamlessly over existing maps to make new, [derived maps](https://github.com/isentropy/accumulo-collections/wiki#derived-maps). 
 
 Documentation is [here](https://github.com/isentropy/accumulo-collections/wiki).
+
+Published under Apache Software License 2.0, see [LICENSE](https://github.com/isentropy/accumulo-collections/blob/master/LICENSE).
