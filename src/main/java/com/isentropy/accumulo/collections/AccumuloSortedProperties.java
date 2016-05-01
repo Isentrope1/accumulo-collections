@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import com.isentropy.accumulo.collections.io.Utf8Serde;
 
 public class AccumuloSortedProperties extends AccumuloSortedMap<String,String>{
-	public AccumuloSortedProperties(Connector c,String table) throws AccumuloException, AccumuloSecurityException, TableExistsException{
+	public AccumuloSortedProperties(Connector c,String table) throws AccumuloException, AccumuloSecurityException{
 		super(c,table);
 		setKeySerde(new Utf8Serde());
 		setValueSerde(new Utf8Serde());

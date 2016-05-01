@@ -308,18 +308,13 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 
 	@Override
 	public boolean containsKey(Object key) {
-		Scanner s = null;
-		try {
-			s = getScanner();
-		} catch (TableNotFoundException e) {
-			log.error(e.getMessage());
-			throw new RuntimeException(e);
-		}
-		Key k = getKey(key);
-		s.setRange(new Range(k,k));
-		return s.iterator().hasNext();
+		return get(key) != null;
 	}
 
+	/**
+	 * runs through the entire table locally. slow.
+	 * TODO maybe add iterator for this
+	 */
 	@Override
 	public boolean containsValue(Object value) {
 		Scanner	s;

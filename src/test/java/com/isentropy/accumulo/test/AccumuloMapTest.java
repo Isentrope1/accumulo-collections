@@ -22,6 +22,9 @@ limitations under the License.
 
 package com.isentropy.accumulo.test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +37,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -41,10 +45,12 @@ import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
+import com.isentropy.accumulo.collections.AccumuloSortedProperties;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
+import com.isentropy.accumulo.util.TsvInputStreamIterator;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -66,6 +72,20 @@ extends TestCase
 		super( testName );
 	}
 
+	public void testImport(Connector c) throws AccumuloException, AccumuloSecurityException, IOException{
+		String contents = "a\taa\n"+
+				"b\tbb\n"+
+				"c\tcc\n";
+				
+		AccumuloSortedProperties im = new AccumuloSortedProperties(c,"testimport");
+		im.importAll(new TsvInputStreamIterator(new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8))));
+		assertTrue(im.containsKey("a"));
+		assertTrue(im.containsValue("bb"));
+		assertTrue(im.size() == 3);
+		im.dump(System.out);
+		
+		
+	}
 	/**
 	 * @return the suite of tests being tested
 	 */
@@ -196,10 +216,22 @@ extends TestCase
 			long ts123 = asm.getTimestamp(123);
 			System.out.println("ts123 = " + new Date(ts123));
 			assertTrue(ts123 >= preaddts && ts123 <= postaddts);
+			assertTrue(asm.containsKey(123l));
+			assertFalse(asm.containsKey(-123l));
 			assertNull(asm.get(-1));
+			assertTrue(asm.keySet().contains(123l));
 			assertTrue(asm.firstKey().equals(0l));
 			assertTrue(asm.get(100).equals(200l));
 			assertTrue(asm.size() == 1000);
+			assertTrue(asm.values().contains(1002l));
+			assertFalse(asm.values().contains(1001l));
+			/*
+			 * for(Object o : asm.keySet()){
+				System.out.println("ks "+o);
+			}
+			*/
+			assertTrue(asm.keySet().contains(999l));
+			assertFalse(asm.keySet().contains(1001l));
 
 			AccumuloSortedMap copyOfAsm = new AccumuloSortedMap(c,"othertable");
 			copyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
@@ -240,6 +272,7 @@ extends TestCase
 			transformedCopyOfAsm.subMap(10, 20).dump(System.out);
 			
 
+			testImport(c);
 
 			//asm.subMap(0, 5).dump(System.out);
 
