@@ -18,7 +18,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
- */
+*/
 
 package com.isentropy.accumulo.test;
 
@@ -167,44 +167,13 @@ extends TestCase
 
 
 	}
-	public static class ImportSimulationIterator implements Iterator<Entry>{
-		int count;
-		public ImportSimulationIterator(int numinserts){
-			count = numinserts;
-		}
-		@Override
-		public boolean hasNext() {
-			return count > 0;
-		}
-
-		@Override
-		public Entry next() {
-			final int c = count--;
-			return new Entry(){
-				@Override
-				public Object getKey() {
-					return c;
-				}
-
-				@Override
-				public Object getValue() {
-					return c+1;
-				}
-
-				@Override
-				public Object setValue(Object value) {
-					// TODO Auto-generated method stub
-					return null;
-				}
-			};
-		}
-
-	}
 
 	public void testApp()
 	{
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
+			//new Benchmark().benchmark(c, System.out, 99999,10);
+			
 			//set up map load [x,2*x] for x in 1 to 1000
 			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
 			long preaddts = System.currentTimeMillis();
@@ -258,7 +227,6 @@ extends TestCase
 			AccumuloSortedMap transformedCopyOfAsm = new AccumuloSortedMap(c,"transformed");
 			transformedCopyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
 			transformedCopyOfAsm.putAll(asm, new KeyValueTransformer(){
-
 				@Override
 				public Entry transformKeyValue(Object fk, Object fv) {
 					// invert key and value

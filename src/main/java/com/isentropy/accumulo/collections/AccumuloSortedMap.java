@@ -392,17 +392,33 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		bw.addMutation(m);		
 	}
 
+	/**
+	 * same as put(), but doesn't fetch the previous value
+	 * @param key
+	 * @param value
+	 */
+	public void putWithoutGet(K key, V value) {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+		try {
+			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+			put(key, value,bw);
+			bw.flush();
+			bw.close();
+		}
+		catch(Exception e){
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
+		}
+		
+	}
 	@Override
 	public V put(K key, V value) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 		try {
 			V prev = this.get(key);
-			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
-			put(key, value,bw);
-			bw.flush();
-			bw.close();
-			//dump(System.out);
+			putWithoutGet(key,value);
 			return prev;
 		}
 		catch(Exception e){
