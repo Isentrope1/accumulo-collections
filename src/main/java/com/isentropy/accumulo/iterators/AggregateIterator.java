@@ -26,6 +26,7 @@ package com.isentropy.accumulo.iterators;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,10 +41,12 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
 import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
 
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.util.KeyValue;
 /**
  * 
  * AggregateIterator is an iterator that calculates a tablet-wide aggregate of some sort (count, sum ,etc). 
@@ -70,19 +73,10 @@ public abstract class AggregateIterator extends WrappingIterator implements Opti
 	 */
 	protected abstract KeyValue aggregate() throws IOException;
 
-	public static final class KeyValue{
-		public KeyValue(){};
-		public KeyValue(Key k, Value v){key=k;value=v;};
-		Key key;
-		Value value;
-	}
-
-	
-
 	protected void aggregateWrapper() throws IOException{
 		KeyValue kv = aggregate();
-		result_key = kv.key;
-		result = kv.value;
+		result_key = kv.getKey();
+		result = kv.getValue();
 		isAggregated = true;
 	}
 

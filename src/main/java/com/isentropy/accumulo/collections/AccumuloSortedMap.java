@@ -64,9 +64,11 @@ import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.iterators.AggregateIterator;
 import com.isentropy.accumulo.iterators.SamplingFilter;
 import com.isentropy.accumulo.iterators.StatsAggregateIterator;
+import com.isentropy.accumulo.util.KeyValue;
 import com.isentropy.accumulo.util.Util;
 /**
  * IMPORTANT: 	 
@@ -443,33 +445,41 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
-
-		try{
-			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
-			for(Entry<? extends K, ? extends V> e :m.entrySet()){
-				put(e.getKey(), e.getValue(),bw);
-			}
-			bw.flush();
-			bw.close();
-		}
-		catch(Exception e){
-			log.error(e.getMessage());
-			throw new RuntimeException(e);
-		}
+		importAll(m.entrySet().iterator(),null);
 	}
+	public void putAll(Map<? extends K, ? extends V> m, KeyValueTransformer trans) {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+		importAll(m.entrySet().iterator(),trans);
+	}
+	
+	public void importAll(Iterator it) {
+		importAll(it,null);
+	}
+	
 	/**
 	 * for bulk import. unlike put(), does not flush BatchWriter after each entry
-	 * @param it
+	 * 
+	 * @param it an iterator of type Iterator<Map.Entry<? extends K, ? extends V>>
+	 * 
 	 */
-	public void importAll(Iterator<Map.Entry<? extends K, ? extends V>> it) {
+	public void importAll(Iterator it,KeyValueTransformer trans) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 
 		try{
 			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
 			for(;it.hasNext();){
-				Entry<? extends K, ? extends V> e = it.next();
-				put(e.getKey(), e.getValue(),bw);
+				Entry e = (Entry) it.next();
+				K key = (K) e.getKey();
+				V value = (V) e.getValue();
+				if(trans != null){
+					Entry tranformed = trans.transformKeyValue(key, value);
+					put((K) tranformed.getKey(), (V) tranformed.getValue(), bw);										
+				}
+				else{
+					put(key,value,bw);					
+				}
 			}
 			bw.flush();
 			bw.close();

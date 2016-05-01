@@ -18,31 +18,21 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
- */
+*/
+package com.isentropy.accumulo.util;
 
-package com.isentropy.accumulo.iterators;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
-import com.isentropy.accumulo.collections.io.LongBinarySerde;
-import com.isentropy.accumulo.util.KeyValue;
+public class KeyValue extends AbstractMap.SimpleEntry<Key, Value>{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
-
-public class LongCountAggregateIterator extends AggregateIterator{
-	@Override
-	protected KeyValue aggregate() throws IOException{
-		long count=0;
-		Key k = null;
-		while(getSource().hasTop()){
-			k = getSource().getTopKey();
-			Value v = getSource().getTopValue();
-			count++;
-			getSource().next();
-		}
-		return new KeyValue(k,new Value(LongBinarySerde.longSerialize(count)));
+	public KeyValue(Key key, Value value) {
+		super(key, value);
 	}
 }

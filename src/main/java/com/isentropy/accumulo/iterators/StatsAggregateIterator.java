@@ -33,6 +33,8 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.util.KeyValue;
+
 import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
 import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
 

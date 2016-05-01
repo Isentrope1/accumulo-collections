@@ -22,6 +22,7 @@ limitations under the License.
 
 package com.isentropy.accumulo.test;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -43,6 +44,7 @@ import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
+import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -204,6 +206,7 @@ extends TestCase
 			copyOfAsm.putAll(asm);
 			int sz = asm.size();
 			assertTrue(copyOfAsm.size() == sz);
+			Object o = copyOfAsm.get(101l);
 			assertTrue(copyOfAsm.get(101l).equals(202l));
 			HashMap toAdd = new HashMap();
 			for(int x=1000;x<1010;x++)
@@ -218,6 +221,25 @@ extends TestCase
 			assertTrue(copyOfAsm.size() == 10);
 			assertTrue(copyOfAsm.get(1l).equals(2l));
 			copyOfAsm.dump(System.out);
+
+
+			AccumuloSortedMap transformedCopyOfAsm = new AccumuloSortedMap(c,"transformed");
+			transformedCopyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			transformedCopyOfAsm.putAll(asm, new KeyValueTransformer(){
+
+				@Override
+				public Entry transformKeyValue(Object fk, Object fv) {
+					// invert key and value
+					return new AbstractMap.SimpleEntry(fv,fk);
+				}
+			}
+			);
+			assertTrue(transformedCopyOfAsm.get(202l).equals(101l));
+			assertTrue(transformedCopyOfAsm.size() == sz);
+			System.out.println("Inverted map: ");
+			transformedCopyOfAsm.subMap(10, 20).dump(System.out);
+			
+
 
 			//asm.subMap(0, 5).dump(System.out);
 
