@@ -27,17 +27,19 @@ import java.util.Map.Entry;
 
 public class ImportSimulationIterator implements Iterator<Entry>{
 	long count;
+	long maxcount;
 	public ImportSimulationIterator(long numinserts){
-		count = numinserts;
+		count = 0;
+		maxcount = numinserts;
 	}
 	@Override
 	public boolean hasNext() {
-		return count > 0;
+		return count < maxcount;
 	}
 
 	@Override
 	public Entry next() {
-		final long c = count--;
+		final long c = count++;
 		return new Entry(){
 			@Override
 			public Object getKey() {

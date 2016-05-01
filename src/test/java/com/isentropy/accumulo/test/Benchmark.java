@@ -82,12 +82,16 @@ public class Benchmark {
 		}
 		return t;
 	}
+	
 	/**
 	 * 
 	 * @param c
-	 * @throws TableNotFoundException 
-	 * @throws AccumuloSecurityException 
-	 * @throws AccumuloException 
+	 * @param ps the PrintStream to write results to
+	 * @param numInsertsPerTest
+	 * @param numTests
+	 * @throws TableNotFoundException
+	 * @throws AccumuloException
+	 * @throws AccumuloSecurityException
 	 */
 	public void benchmark(Connector c, PrintStream ps, long numInsertsPerTest, int numTests) throws TableNotFoundException, AccumuloException, AccumuloSecurityException{
 		MetricRegistry metrics = new MetricRegistry();
@@ -161,22 +165,24 @@ public class Benchmark {
 
 			testname = "AccumuloSortedMap_write_batched";
 			t = getTimer(metrics,testname);
-			context = t.time();
 			AccumuloSortedMap asm = new AccumuloSortedMap(c,"asm1");
 			asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			context = t.time();
 			asm.importAll(new ImportSimulationIterator(numInsertsPerTest));
 			context.stop();
 			asm.delete();
 
+			
 			testname = "AccumuloSortedMap_write_unbatched";
 			t = getTimer(metrics,testname);
-			context = t.time();
 			asm = new AccumuloSortedMap(c,"asm2");
 			asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			context = t.time();
 			for(long l=0;l<numInsertsPerTest;l++){
 				asm.putWithoutGet(l,l+1);
 			}
 			context.stop();
+			
 
 			testname = "AccumuloSortedMap_read";
 			t = getTimer(metrics,testname);
@@ -184,7 +190,7 @@ public class Benchmark {
 			for(long l=0;l<numInsertsPerTest;l++){
 				Object v = asm.get(l);
 				if(v == null)
-					Assert.fail("consistency error in AccumuloSortedMap benchmark");
+					Assert.fail("consistency error in AccumuloSortedMap benchmark: "+l);
 			}
 			context.stop();
 

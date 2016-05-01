@@ -23,6 +23,7 @@ limitations under the License.
 package com.isentropy.accumulo.test;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
@@ -172,7 +174,17 @@ extends TestCase
 	{
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
-			//new Benchmark().benchmark(c, System.out, 99999,10);
+			
+/*
+    		//setup for MiniAccumulo
+			File tempDirectory = new File("/tmp/asmTest");
+			MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDirectory, "password");
+			accumulo.start();
+			Thread.sleep(60000);
+			Connector c = accumulo.getConnector("root", "password");
+*/			
+			// run benchmark:
+			//new Benchmark().benchmark(c, System.out, 999999,10);
 			
 			//set up map load [x,2*x] for x in 1 to 1000
 			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
