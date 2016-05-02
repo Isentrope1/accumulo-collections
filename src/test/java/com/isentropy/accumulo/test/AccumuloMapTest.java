@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -49,7 +50,9 @@ import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.AccumuloSortedProperties;
 import com.isentropy.accumulo.collections.MapAggregates;
+import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
+import com.isentropy.accumulo.collections.io.LongAsUtf8Serde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.util.TsvInputStreamIterator;
@@ -169,12 +172,50 @@ extends TestCase
 
 
 	}
+	
+	public void testMapFactory(Connector c) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException, TableNotFoundException{
+		AccumuloSortedMapFactory fact = new AccumuloSortedMapFactory(c,"factory_table");
+		String tableName = "test_map_factory";
+		AccumuloSortedMap asm = fact.makeMap(tableName);
+		AccumuloSortedMap asm2 = new AccumuloSortedMap(c,tableName);
+		boolean err = false;
+		try{
+			asm.setKeySerde(new LongBinarySerde());
+		}
+		catch(Exception e){
+			err=true;
+		}
+		assertTrue(err);
+		asm.put(123, 456);
+		assertTrue(asm2.get(123).equals(456));
+
+		asm.clear();
+		
+		//change the default serde to LongBinarySerde
+		fact.addDefaultProperty(AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE, LongBinarySerde.class.getName());
+		fact.addDefaultProperty(AccumuloSortedMapFactory.MAP_PROPERTY_VALUE_SERDE, LongBinarySerde.class.getName());
+		asm = fact.makeMap(tableName);
+		asm.put(123, 4567);
+		asm2.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+		assertTrue(asm2.get(123).equals(4567l));
+		
+		asm.clear();
+		
+		//change the table-specific metadata for this table
+		fact.addMapSpecificProperty(tableName, AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE, LongAsUtf8Serde.class.getName());
+		asm = fact.makeMap(tableName);
+		asm.put(123, 456);
+		asm2.setKeySerde(new LongAsUtf8Serde()).setValueSerde(new LongBinarySerde());
+		assertTrue(asm2.get(123).equals(456l));
+		
+		//asm.delete();
+	}
 
 	public void testApp()
 	{
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
-			
+			testMapFactory(c);
 /*
     		//setup for MiniAccumulo
 			File tempDirectory = new File("/tmp/asmTest");

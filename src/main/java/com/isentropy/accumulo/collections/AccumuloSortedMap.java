@@ -131,7 +131,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setKeySerde(com.isentropy.accumulo.collections.io.SerDe)
 	 */
 	@Override
-	public AccumuloSortedMapBase<K, V> setKeySerde(SerDe s){
+	public AccumuloSortedMap<K, V> setKeySerde(SerDe s){
 		keySerde=s;
 		return this;
 	}
@@ -152,7 +152,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setValueSerde(com.isentropy.accumulo.collections.io.SerDe)
 	 */
 	@Override
-	public AccumuloSortedMapBase<K, V> setValueSerde(SerDe s){
+	public AccumuloSortedMap<K, V> setValueSerde(SerDe s){
 		valueSerde=s;
 		return this;
 	}
@@ -197,7 +197,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * @param cf
 	 * @return
 	 */
-	protected AccumuloSortedMapBase<K, V> setColumnFamily(byte[] cf){
+	protected AccumuloSortedMap<K, V> setColumnFamily(byte[] cf){
 		colfam = cf;
 		return this;
 	}
@@ -206,7 +206,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * @param cf
 	 * @return
 	 */
-	protected AccumuloSortedMapBase<K, V> setColumnQualifier(byte[] cq){
+	protected AccumuloSortedMap<K, V> setColumnQualifier(byte[] cq){
 		colqual = cq;
 		return this;
 	}
@@ -214,7 +214,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setColumnVisibility(byte[])
 	 */
 	@Override
-	public AccumuloSortedMapBase<K, V> setColumnVisibility(byte[] cv){
+	public AccumuloSortedMap<K, V> setColumnVisibility(byte[] cv){
 		colvis = cv;
 		return this;
 	}
@@ -227,7 +227,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * @throws AccumuloException
 	 * @throws TableNotFoundException
 	 */
-	public AccumuloSortedMapBase<K, V> setTimeOutMs(long timeout){
+	public AccumuloSortedMap<K, V> setTimeOutMs(long timeout){
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 		try{
