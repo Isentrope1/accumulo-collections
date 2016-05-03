@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.mappers.ChecksumMapper;
 import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
 import com.isentropy.accumulo.collections.mappers.StatsDerivedMapper;
 import com.isentropy.accumulo.iterators.AggregateIterator;
@@ -82,6 +83,15 @@ public class MapAggregates {
 			sum += (Long) e.getValue();
 		}
 		return sum;
+	}
+	public static long checksum(AccumuloSortedMapBase map){
+		AccumuloSortedMapBase tabletChecksums = map.deriveMap(new ChecksumMapper());
+		Set<Map.Entry> s = tabletChecksums.entrySet();
+		long checksum=0;
+		for(Map.Entry e : s){
+			checksum ^= (Long) e.getValue();
+		}
+		return checksum;
 	}
 
 }

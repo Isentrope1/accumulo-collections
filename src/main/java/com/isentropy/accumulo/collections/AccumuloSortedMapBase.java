@@ -118,12 +118,17 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 		return derivedMapFromIterator(mapper.getIterator(),opts, output_value_serde == null ? getValueSerde():output_value_serde);
 	}
 
-	public abstract AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed,long max_timestamp);
+	public abstract AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed,long min_timestamp, long max_timestamp);
 	public final AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
-		return sample(from_fraction,to_fraction,randSeed,-1);		
+		return sample(from_fraction,to_fraction,randSeed,-1,-1);		
 	}
 	public final AccumuloSortedMapBase<K, V> sample(final double fraction){
-		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1);
+		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1, -1);
+	}
+	
+	
+	public final AccumuloSortedMapBase<K, V> timeFilter(long min_timestamp, long max_timestamp){
+		return sample(0,1,"",min_timestamp,max_timestamp);
 	}
 	
 	/**
@@ -156,6 +161,10 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	@Override
 	public final AccumuloSortedMapBase<K, V> tailMap(K fromKey) {
 		return subMap(fromKey,true,null,true);
+	}
+	
+	public final long checksum(){
+		return MapAggregates.checksum(this);
 	}
 
 

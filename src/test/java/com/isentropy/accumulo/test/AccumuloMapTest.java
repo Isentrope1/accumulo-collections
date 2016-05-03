@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -225,10 +226,30 @@ extends TestCase
 			Connector c = accumulo.getConnector("root", "password");
 */			
 			// run benchmark:
-			//new Benchmark().benchmark(c, System.out, 999999,10);
+	//		new Benchmark().benchmark(c, System.out, 999999,10);
 			
 			//set up map load [x,2*x] for x in 1 to 1000
 			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+			
+			boolean err = false;
+			try{
+				AccumuloSortedMap asmSameNameConflict = new AccumuloSortedMap(c,"mytable",true);
+			}
+			catch(AccumuloException e){
+				err = true;
+			}
+			assertTrue(err);
+			
+			
+			err=false;
+			try{
+				AccumuloSortedMap asmSameNameNoConflict = new AccumuloSortedMap(c,"mytable",false);
+			}
+			catch(AccumuloException e){
+				err = true;
+			}
+			assertFalse(err);
+			
 			long preaddts = System.currentTimeMillis();
 			asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
 			for(long i=0;i<1000;i++){
@@ -236,8 +257,26 @@ extends TestCase
 			}
 			long postaddts = System.currentTimeMillis();
 			long ts123 = asm.getTimestamp(123);
+		
+			//sample random range
+			Random rand = new Random();
+			double r1=rand.nextDouble(),r2=rand.nextDouble();
+			double from = Math.min(r1, r2);
+			double to = Math.max(r1, r2);
+			
+			long checksum = asm.sample(from,to,"abc").checksum();
+			//verfiy sample is the same
+			assertTrue(checksum == asm.sample(from,to,"abc").checksum());
+			System.out.println("checksum = " + checksum);
+			
+			
+			
 			System.out.println("ts123 = " + new Date(ts123));
 			assertTrue(ts123 >= preaddts && ts123 <= postaddts);
+			assertTrue(asm.timeFilter(0,preaddts-1).size() == 0);
+			assertTrue(asm.timeFilter(preaddts,postaddts).size() == 1000);
+			assertTrue(asm.timeFilter(postaddts+1,Long.MAX_VALUE).size() == 0);
+			
 			assertTrue(asm.containsKey(123l));
 			assertFalse(asm.containsKey(-123l));
 			assertNull(asm.get(-1));
@@ -249,6 +288,7 @@ extends TestCase
 			assertFalse(asm.values().contains(1001l));
 			assertTrue(asm.headMap(123).size() == 123);
 			assertTrue(asm.tailMap(123).size() == 1000 -123);
+			
 			/*
 			 * for(Object o : asm.keySet()){
 				System.out.println("ks "+o);
@@ -301,7 +341,7 @@ extends TestCase
 
 
 			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);
-			boolean err = false;
+			err = false;
 			try{
 				submap.put(1, -1);
 			}

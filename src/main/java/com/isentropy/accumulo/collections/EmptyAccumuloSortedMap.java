@@ -190,7 +190,7 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 
 	@Override
 	public AccumuloSortedMapBase<K, V> sample(double from_fraction,
-			double to_fraction, String randSeed, long max_timestamp) {
+			double to_fraction, String randSeed, long min_timestamp, long max_timestamp) {
 			return this;
 	}
 	

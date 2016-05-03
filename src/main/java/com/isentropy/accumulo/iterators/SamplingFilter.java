@@ -45,11 +45,13 @@ public class SamplingFilter extends Filter{
 	public static final String OPT_TOFRACTION = "tofrac";
 	public static final String OPT_RANDOMSEED = "seed";
 	public static final String OPT_MAXTIMESTAMP = "maxts";
+	public static final String OPT_MINTIMESTAMP = "mints";
 	
 	private byte[] fromHash,toHash,randSeed;
 	private double fromfrac=0,tofrac=1;
 	private String mdtype = "SHA-256";
 	private long maxts = -1;
+	private long mints = -1;
 	
 	BytesWritable.Comparator comp = new BytesWritable.Comparator();
 	MessageDigest md;
@@ -68,6 +70,7 @@ public class SamplingFilter extends Filter{
 		opts.addNamedOption(OPT_TOFRACTION, "to hash fraction of entries to sample");
 		opts.addNamedOption(OPT_RANDOMSEED, "rand bytes to be added to hashed bytes");
 		opts.addNamedOption(OPT_MAXTIMESTAMP, "maximum timestamp to accept (optional)");
+		opts.addNamedOption(OPT_MINTIMESTAMP, "minimum timestamp to accept (optional)");
 		return opts;
 	}
 
@@ -93,10 +96,16 @@ public class SamplingFilter extends Filter{
 	public boolean accept(Key k, Value v) {
 		if(maxts > 0 && maxts < k.getTimestamp())
 			return false;
+		if(mints > 0 && mints > k.getTimestamp())
+			return false;
+		//pass through without computing hash if sampling all (just time filter)
+		if(fromfrac == 0 && tofrac >= 1)
+			return true;
+			
 		byte[] kb = k.getRowData().toArray();
 		byte[] kbhash = hash(kb,randSeed);
 		int cmpto = compare(kbhash,toHash), cmpfrom = compare(kbhash,fromHash);
-		return cmpfrom >=0 && (cmpto < 0 || (tofrac == 1 && cmpto ==0 ));
+		return cmpfrom >=0 && (cmpto < 0 || (tofrac >= 1 && cmpto ==0 ));
 	}
 	
 	@Override
@@ -112,14 +121,14 @@ public class SamplingFilter extends Filter{
 		fromHash = Util.hashPoint(md.getDigestLength(), fromfrac);
 		toHash = Util.hashPoint(md.getDigestLength(), tofrac);
 		randSeed =  options.get(OPT_RANDOMSEED).getBytes(StandardCharsets.UTF_8);
+
 		String tso = options.get(OPT_MAXTIMESTAMP);
-		
 		if(tso != null){
-			maxts = Integer.parseInt(tso);
+			maxts = Long.parseLong(tso);
 		}
-		
-		//System.out.println("from: "+Util.bytesToHex(fromHash));
-		//System.out.println("to: " + Util.bytesToHex(toHash));
-		
+		tso = options.get(OPT_MINTIMESTAMP);
+		if(tso != null){
+			mints = Long.parseLong(tso);
+		}
 	}
 }

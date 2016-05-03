@@ -91,8 +91,10 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	private Connector conn;
 	private String table;
 
-	
+
 	private BatchWriterConfig batchWriterConfig = getDefaultBatchWriterConfig();
+	protected BatchWriter batchWriter;
+
 	private SerDe keySerde = new JavaSerializationSerde();
 	private SerDe valueSerde = new JavaSerializationSerde();
 	private byte[] colvis=new byte[0];
@@ -116,9 +118,12 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return new AccumuloSortedMap(c,table);
 	}
 	public AccumuloSortedMap(Connector c,String table) throws AccumuloException, AccumuloSecurityException {
+		this(c,table,false);
+	}
+	public AccumuloSortedMap(Connector c,String table, boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException {
 		conn = c;
 		this.table = table;
-		init();
+		init(errorIfTableAlreadyExists);
 	}
 	protected AccumuloSortedMap(){};
 	/* (non-Javadoc)
@@ -157,8 +162,17 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		valueSerde=s;
 		return this;
 	}
-	protected void init() throws AccumuloException, AccumuloSecurityException{
-		createTable();
+	protected void init(boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException{
+		try {
+			createTable();
+		} 
+		catch (TableExistsException e) {
+			if(errorIfTableAlreadyExists)
+				throw new AccumuloException(e);
+			else{
+				log.info("table already exists: "+getTable());
+			}
+		}
 	}
 
 	/**
@@ -180,16 +194,10 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return conn;
 	}
 
-	protected boolean createTable() throws AccumuloException, AccumuloSecurityException{
-		try {
-			log.info("Creating Accumulo table: "+getTable());
-			getConnector().tableOperations().create(getTable());
-			return true;
-		}
-		catch (TableExistsException e) {
-			log.debug("table exists: " +getTable());
-			return false;
-		}
+	protected boolean createTable() throws AccumuloException, AccumuloSecurityException, TableExistsException{
+		log.info("Creating Accumulo table: "+getTable());
+		getConnector().tableOperations().create(getTable());
+		return true;
 	}
 
 
@@ -405,13 +413,17 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			BatchWriter bw = getBatchWriter();
 			put(key, value,bw);
 			bw.flush();
-			bw.close();
 		}
-		catch(Exception e){
+		catch(MutationsRejectedException e){
 			log.error(e.getMessage());
-			throw new RuntimeException(e);
+			try {
+				reinitBatchWriter();
+				throw new RuntimeException(e);
+			} catch (Exception e1) {
+				log.error(e1.getMessage());
+				throw new RuntimeException(e1);
+			}
 		}
-		
 	}
 	@Override
 	public V put(K key, V value) {
@@ -439,12 +451,17 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			m.putDelete(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()));
 			bw.addMutation(m);
 			bw.flush();
-			bw.close();
 			return prev;
 		}
-		catch(Exception e){
+		catch(MutationsRejectedException e){
 			log.error(e.getMessage());
-			throw new RuntimeException(e);
+			try {
+				reinitBatchWriter();
+				throw new RuntimeException(e);
+			} catch (Exception e1) {
+				log.error(e1.getMessage());
+				throw new RuntimeException(e1);
+			}
 		}
 	}
 
@@ -452,7 +469,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * this method is optimized for batch writing. 
 	 * it should be faster than repeated calls to put(), which flushes BatchWriter after each entry
 	 */
-	
+
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if(isReadOnly())
@@ -464,11 +481,11 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			throw new UnsupportedOperationException();
 		importAll(m.entrySet().iterator(),trans);
 	}
-	
+
 	public void importAll(Iterator it) {
 		importAll(it,null);
 	}
-	
+
 	/**
 	 * for bulk import. unlike put(), does not flush BatchWriter after each entry
 	 * 
@@ -494,14 +511,19 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 				}
 			}
 			bw.flush();
-			bw.close();
 		}
-		catch(Exception e){
+		catch(MutationsRejectedException e){
 			log.error(e.getMessage());
-			throw new RuntimeException(e);
+			try {
+				reinitBatchWriter();
+				throw new RuntimeException(e);
+			} catch (Exception e1) {
+				log.error(e1.getMessage());
+				throw new RuntimeException(e1);
+			}
 		}
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#delete()
 	 */
@@ -889,13 +911,15 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return new IteratorStackedSubmap<K,V>(this,iterator,itcfg,derivedMapValueSerde);		
 	}
 
-	public AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long max_timestamp){
+	public AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long min_timestamp, final long max_timestamp){
 		Map<String,String> cfg = new HashMap<String,String>();
 		cfg.put(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
 		cfg.put(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
 		cfg.put(SamplingFilter.OPT_RANDOMSEED, randSeed);
 		if(max_timestamp > 0)
 			cfg.put(SamplingFilter.OPT_MAXTIMESTAMP, Long.toString(max_timestamp));
+		if(min_timestamp > 0)
+			cfg.put(SamplingFilter.OPT_MINTIMESTAMP, Long.toString(min_timestamp));
 		return derivedMapFromIterator(SamplingFilter.class,cfg,getValueSerde());
 	}
 
@@ -1050,15 +1074,40 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		final AccumuloSortedMap<K,V> parent = this;
 		return new BackingSet(parent);
 	}
-	protected BatchWriter getBatchWriter() throws TableNotFoundException{
-		BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
-		return bw;
+	/*
+	 * from https://accumulo.apache.org/1.7/apidocs/org/apache/accumulo/core/client/BatchWriter.html
+	 * 
+	 * In the event that an MutationsRejectedException exception is thrown by one of the methods on a BatchWriter instance, the user should close the current instance and create a new instance. 
+	 * This is a known limitation which will be addressed by ACCUMULO-2990 in the future.
+	 */
+	protected void reinitBatchWriter() throws TableNotFoundException, MutationsRejectedException{
+		if(batchWriter != null)
+			batchWriter.close();
+		batchWriter = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+	}
+
+	protected BatchWriter getBatchWriter(){
+		if(batchWriter == null){
+			try {
+				reinitBatchWriter();
+			} catch (Exception e) {
+				log.error(e.getMessage());
+				throw new RuntimeException(e);
+			}
+		}
+		return batchWriter;
 	}
 	public BatchWriterConfig getBatchWriterConfig() {
 		return batchWriterConfig;
 	}
 	public void setBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
 		this.batchWriterConfig = batchWriterConfig;
+		try {
+			reinitBatchWriter();
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
+		}
 	}
 
 }
