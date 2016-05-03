@@ -50,7 +50,7 @@ public class MapChecksumAggregateIterator extends AggregateIterator {
 	public static Logger log = LoggerFactory.getLogger(MapChecksumAggregateIterator.class);
 
 	
-	private int keyChecksum=0;
+	private long keyChecksum=0;
 	private int valueChecksum=0;
 	
 
@@ -62,8 +62,8 @@ public class MapChecksumAggregateIterator extends AggregateIterator {
 			Value v = getSource().getTopValue();
 			Object ko = key_serde.deserialize(k.getRowData().toArray());
 			Object vo = value_serde.deserialize(v.get());
-			keyChecksum ^= ko.hashCode();
-			valueChecksum ^= vo.hashCode();
+			keyChecksum += ko.hashCode();
+			valueChecksum += vo.hashCode();
 			getSource().next();
 		}
 		long checksums = (keyChecksum << 32)|valueChecksum;

@@ -163,6 +163,15 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 		return subMap(fromKey,true,null,true);
 	}
 	
+	/**
+	 * a full map checksum to ensure data integrity
+	 * computed on tablet servers using MapChecksumAggregateIterator
+	 * 
+	 * @return a long whose top int is the sum of keys' hashCode() and 
+	 *  whose bottom int is the sum of values' hashCode(). Note that this
+	 *  checksum runs on the deserialized java objects and should therefore be
+	 *  independent of SerDe
+	 */
 	public final long checksum(){
 		return MapAggregates.checksum(this);
 	}

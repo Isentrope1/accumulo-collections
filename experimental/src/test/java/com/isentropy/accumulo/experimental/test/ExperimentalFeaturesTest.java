@@ -67,6 +67,7 @@ extends TestCase
 			}
 			// this is a map of [x,6x]
 			mapOfLongToMap.deriveMap(jsTransform("k + v['twox'] + v['threex']")).dump(System.out);;
+			System.out.println("checksum = " + mapOfLongToMap.checksum());
 		}
 		
 		catch(Exception e){

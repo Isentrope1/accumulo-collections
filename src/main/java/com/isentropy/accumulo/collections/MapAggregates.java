@@ -89,7 +89,7 @@ public class MapAggregates {
 		Set<Map.Entry> s = tabletChecksums.entrySet();
 		long checksum=0;
 		for(Map.Entry e : s){
-			checksum ^= (Long) e.getValue();
+			checksum += (Long) e.getValue();
 		}
 		return checksum;
 	}
