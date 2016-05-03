@@ -91,7 +91,8 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	private Connector conn;
 	private String table;
 
-
+	
+	private BatchWriterConfig batchWriterConfig = getDefaultBatchWriterConfig();
 	private SerDe keySerde = new JavaSerializationSerde();
 	private SerDe valueSerde = new JavaSerializationSerde();
 	private byte[] colvis=new byte[0];
@@ -373,7 +374,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	}
 
 
-	protected BatchWriterConfig getBatchWriterConfig(){
+	protected BatchWriterConfig getDefaultBatchWriterConfig(){
 		BatchWriterConfig bwc = new BatchWriterConfig();
 		bwc.setMaxLatency(300, TimeUnit.SECONDS);
 		return bwc;
@@ -401,7 +402,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 		try {
-			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+			BatchWriter bw = getBatchWriter();
 			put(key, value,bw);
 			bw.flush();
 			bw.close();
@@ -433,7 +434,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			throw new UnsupportedOperationException();
 		try {
 			V prev = this.get(key);
-			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+			BatchWriter bw = getBatchWriter();
 			Mutation m = new Mutation(getKey(key).getRowData().toArray());
 			m.putDelete(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()));
 			bw.addMutation(m);
@@ -479,7 +480,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			throw new UnsupportedOperationException();
 
 		try{
-			BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+			BatchWriter bw = getBatchWriter();
 			for(;it.hasNext();){
 				Entry e = (Entry) it.next();
 				K key = (K) e.getKey();
@@ -1048,6 +1049,16 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	public Set<java.util.Map.Entry<K, V>> entrySet() {
 		final AccumuloSortedMap<K,V> parent = this;
 		return new BackingSet(parent);
+	}
+	protected BatchWriter getBatchWriter() throws TableNotFoundException{
+		BatchWriter bw = getConnector().createBatchWriter(getTable(), getBatchWriterConfig());
+		return bw;
+	}
+	public BatchWriterConfig getBatchWriterConfig() {
+		return batchWriterConfig;
+	}
+	public void setBatchWriterConfig(BatchWriterConfig batchWriterConfig) {
+		this.batchWriterConfig = batchWriterConfig;
 	}
 
 }

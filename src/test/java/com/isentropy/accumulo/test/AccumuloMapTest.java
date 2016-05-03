@@ -247,6 +247,8 @@ extends TestCase
 			assertTrue(asm.size() == 1000);
 			assertTrue(asm.values().contains(1002l));
 			assertFalse(asm.values().contains(1001l));
+			assertTrue(asm.headMap(123).size() == 123);
+			assertTrue(asm.tailMap(123).size() == 1000 -123);
 			/*
 			 * for(Object o : asm.keySet()){
 				System.out.println("ks "+o);
