@@ -93,6 +93,11 @@ public class AccumuloSortedMapFactory<K,V> {
 		configureMap(out,props);
 		return out;
 	}
+	public FactoryAccumuloSortedMap<K,V> makeReadOnlyMap(String tableName) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		FactoryAccumuloSortedMap<K,V> map = makeMap(tableName);
+		map.setReadOnly(true);
+		return map;
+	}
 	
 	protected void configureMap(FactoryAccumuloSortedMap<K,V> map, Properties props) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
 		String v;

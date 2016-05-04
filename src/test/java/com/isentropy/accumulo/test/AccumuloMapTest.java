@@ -250,6 +250,17 @@ extends TestCase
 			}
 			assertFalse(err);
 			
+			err=false;
+			try{
+				AccumuloSortedMap readOnly = new AccumuloSortedMap(c,"mytable",false);
+				readOnly.setReadOnly(true);
+				readOnly.put(123, 456);
+			}
+			catch(UnsupportedOperationException e){
+				err = true;
+			}
+			assertTrue(err);
+			
 			long preaddts = System.currentTimeMillis();
 			asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
 			for(long i=0;i<1000;i++){

@@ -98,7 +98,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	private SerDe keySerde = new JavaSerializationSerde();
 	private SerDe valueSerde = new JavaSerializationSerde();
 	private byte[] colvis=new byte[0];
-
+	private boolean readOnly = false;
 	//data
 	private byte[] colfam="d".getBytes(StandardCharsets.UTF_8);
 	//value
@@ -143,8 +143,13 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	}
 
 	@Override
-	public boolean isReadOnly() {
-		return false;
+	public boolean isReadOnly(){
+		return readOnly;
+	}
+	
+	public AccumuloSortedMap<K, V> setReadOnly(boolean ro){
+		readOnly = ro;
+		return this;
 	}
 
 	/* (non-Javadoc)
