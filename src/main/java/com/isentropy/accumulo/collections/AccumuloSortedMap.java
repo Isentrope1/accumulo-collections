@@ -479,16 +479,16 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
-		importAll(m.entrySet().iterator(),null);
+		importAll(m.entrySet().iterator(),null,false);
 	}
 	public void putAll(Map<? extends K, ? extends V> m, KeyValueTransformer trans) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
-		importAll(m.entrySet().iterator(),trans);
+		importAll(m.entrySet().iterator(),trans,false);
 	}
 
-	public void importAll(Iterator it) {
-		importAll(it,null);
+	public long importAll(Iterator it) {
+		return importAll(it,null,true);
 	}
 
 	/**
@@ -496,11 +496,15 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * 
 	 * @param it an iterator of type Iterator<Map.Entry<? extends K, ? extends V>>
 	 * 
+	 * @return a long checksum containing (sum of keys' hashCode(), sum of values' hashCode()) 
+	 *  or 0 if computeChecksum is false
 	 */
-	public void importAll(Iterator it,KeyValueTransformer trans) {
+	public long importAll(Iterator it,KeyValueTransformer trans,boolean computeChecksum) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
 
+		long keySum=0;
+		int valueSum=0;
 		try{
 			BatchWriter bw = getBatchWriter();
 			for(;it.hasNext();){
@@ -514,8 +518,13 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 				else{
 					put(key,value,bw);					
 				}
+				if(computeChecksum){
+					keySum += key.hashCode();
+					valueSum += value.hashCode();
+				}
 			}
 			bw.flush();
+			return (keySum << 32) | valueSum;
 		}
 		catch(MutationsRejectedException e){
 			log.error(e.getMessage());

@@ -22,6 +22,7 @@ limitations under the License.
 package com.isentropy.accumulo.collections;
 
 import java.io.PrintStream;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -38,9 +39,51 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.util.Util;
 
 public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
+
+	protected class JoinIterator implements Iterator<JoinRow>{
+
+		AccumuloSortedMapBase[] toJoinMaps;
+		Iterator<Map.Entry<K, V>> thisMapIterator;
+		KeyValueTransformer trans;
+		Object[] outputTuple;
+		protected JoinIterator(AccumuloSortedMapBase... joinToMaps) {
+			this(null,joinToMaps);
+		}
+		protected JoinIterator(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps) {
+			toJoinMaps = joinToMaps;	
+			thisMapIterator = entrySet().iterator();
+			this.trans = trans;
+		}
+		@Override
+		public boolean hasNext() {
+			return thisMapIterator.hasNext();
+		}
+
+		@Override
+		public JoinRow next() {
+			Object[] outputTuple = new Object[toJoinMaps.length+1];
+			Map.Entry<K, V> e = thisMapIterator.next();
+			Object key= e.getKey();
+			Object value = e.getValue();
+			Object transKey = null;
+			if(trans != null){
+				Map.Entry te = trans.transformKeyValue(key, value);
+				transKey = te.getKey();
+			}
+			outputTuple[0]=value;
+			for(int i=0;i<toJoinMaps.length;i++){
+				outputTuple[i+1]=toJoinMaps[i].get(trans==null?key:transKey);
+			}
+			return new JoinRow(key,transKey,outputTuple);
+		}
+	}
+
+
+
 	/*
 	 * iterators used in deriveMap will be passed SerDe classname info via these iterator params
 	 */
@@ -48,7 +91,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public static final String OPT_VALUE_INPUT_SERDE = "value_input_serde";
 	public static final String OPT_VALUE_OUTPUT_SERDE = "value_output_serde";
 
-	
+
 	private static final int DEFAULT_RANDSEED_LENGTH=20;
 
 	public abstract boolean isReadOnly();
@@ -89,20 +132,44 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 */
 	public abstract long getTimestamp(K key);
 
+	public final Iterator<JoinRow> join(AccumuloSortedMapBase... joinToMaps){
+		return join(null,joinToMaps);
+	}
+
+	/**
+	 * iterates over this map, optionally applying a KeyValueTransformer to key (not value), 
+	 * joins to the specified maps.
+	 * @param trans 
+	 * @param joinToMaps
+	 * @return an array of N+1 (value in this map,value in map0,..., value in mapN-1)
+	 */
+	public final Iterator<JoinRow> join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
+		return new JoinIterator(trans,joinToMaps);
+	}
+	
+	public final Iterator<JoinRow> joinOnValue(AccumuloSortedMapBase... joinToMaps){
+		return new JoinIterator(new KeyValueTransformer(){
+			@Override
+			public java.util.Map.Entry transformKeyValue(Object fk, Object fv) {
+				return new AbstractMap.SimpleEntry(fv,null);
+			}},joinToMaps);
+	}
+
+
 
 	protected abstract AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
-	
-/**
- * Create a derived map by stacking an iterator and options specified by a DerivedMapper.
- * 
- * wraps derivedMapFromIterator and add iterator options OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE
- * that specify the classname of the key and value serdes used by this map
 
- * if mapper.getDerivedMapValueSerde() == null, OPT_VALUE_OUTPUT_SERDE will be set to same value as OPT_VALUE_INPUT_SERDE
+	/**
+	 * Create a derived map by stacking an iterator and options specified by a DerivedMapper.
+	 * 
+	 * wraps derivedMapFromIterator and add iterator options OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE
+	 * that specify the classname of the key and value serdes used by this map
+
+	 * if mapper.getDerivedMapValueSerde() == null, OPT_VALUE_OUTPUT_SERDE will be set to same value as OPT_VALUE_INPUT_SERDE
    and derivedMapFromIterator will be passed the current map's value serde
- * @param mapper
- * @return
- */
+	 * @param mapper
+	 * @return
+	 */
 	public AccumuloSortedMapBase<K,V> deriveMap(DerivedMapper mapper){
 		Map<String,String> opts = mapper.getIteratorOptions();
 		if(opts == null)
@@ -114,7 +181,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 			opts.put(OPT_VALUE_OUTPUT_SERDE, output_value_serde.getClass().getName());
 		else
 			opts.put(OPT_VALUE_OUTPUT_SERDE, getValueSerde().getClass().getName());
-			
+
 		return derivedMapFromIterator(mapper.getIterator(),opts, output_value_serde == null ? getValueSerde():output_value_serde);
 	}
 
@@ -125,12 +192,12 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public final AccumuloSortedMapBase<K, V> sample(final double fraction){
 		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1, -1);
 	}
-	
-	
+
+
 	public final AccumuloSortedMapBase<K, V> timeFilter(long min_timestamp, long max_timestamp){
 		return sample(0,1,"",min_timestamp,max_timestamp);
 	}
-	
+
 	/**
 	 * the end include booleans DONT WORK currently because of bug in Accumulo:
 	 * 
@@ -147,7 +214,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 */
 	protected abstract AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2);
 
-	
+
 	@Override
 	public final AccumuloSortedMapBase<K, V> subMap(K fromKey, K toKey) {
 		return subMap(fromKey,true,toKey,false);
@@ -162,7 +229,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public final AccumuloSortedMapBase<K, V> tailMap(K fromKey) {
 		return subMap(fromKey,true,null,true);
 	}
-	
+
 	/**
 	 * a full map checksum to ensure data integrity
 	 * computed on tablet servers using MapChecksumAggregateIterator

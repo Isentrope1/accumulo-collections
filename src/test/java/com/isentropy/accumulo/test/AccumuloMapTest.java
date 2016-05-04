@@ -50,6 +50,7 @@ import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.AccumuloSortedProperties;
+import com.isentropy.accumulo.collections.JoinRow;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
@@ -269,6 +270,17 @@ extends TestCase
 			long postaddts = System.currentTimeMillis();
 			long ts123 = asm.getTimestamp(123);
 		
+			//test join
+			int i=0;
+			for(Iterator<JoinRow> join = asm.joinOnValue(asm);join.hasNext()&&i++<20;){
+				JoinRow row = join.next();
+				System.out.println(row);
+				assertEquals(row.getTransformedKey(),row.getValues()[0]);
+				assertEquals(2*((Long) row.getValues()[0]),row.getValues()[1]);
+				
+			}
+			
+			
 			//sample random range
 			Random rand = new Random();
 			double r1=rand.nextDouble(),r2=rand.nextDouble();
