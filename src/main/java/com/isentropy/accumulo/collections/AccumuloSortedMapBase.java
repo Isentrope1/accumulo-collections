@@ -172,10 +172,15 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 *  checksum runs on the deserialized java objects and should therefore be
 	 *  independent of SerDe
 	 */
-	public final long checksum(){
+	public long checksum(){
 		return MapAggregates.checksum(this);
 	}
-
+	public final int checksumKeys(){
+		return (int) (checksum() >>> 32);
+	}
+	public final int checksumValues(){
+		return (int) checksum();
+	}
 
 	/**
 	 * dumps key/values to stream. for debugging
