@@ -18,7 +18,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
- */
+*/
 package com.isentropy.accumulo.collections;
 
 import java.util.Map;
@@ -35,30 +35,57 @@ import org.apache.accumulo.core.security.Authorizations;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.iterators.SamplingFilter;
 
-public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
-	private Class<? extends SortedKeyValueIterator<Key, Value>> iterator;
-	private Map<String,String> iterator_options;
+/**
+ * derived map that comes from modifying scanner
+ */
+public abstract class ScannerDerivedMap<K,V> extends AccumuloSortedMap<K,V>{
+	protected AccumuloSortedMap<K,V> parent;
+	protected SerDe newValueSerde;
 	
-	public IteratorStackedSubmap(AccumuloSortedMap<K,V> parent, Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde) {
-		super(parent,derivedMapValueSerde);
-		this.iterator = iterator;
-		this.iterator_options = iterator_options;
+	public ScannerDerivedMap(AccumuloSortedMap<K,V> parent, SerDe derivedMapValueSerde) {
+		this.parent = parent;
+		newValueSerde = derivedMapValueSerde;
 	}
 	
-	@Override 
-	protected int nextIteratorPriority(){
-		return parent.nextIteratorPriority()+1;
+	@Override
+	public boolean isReadOnly() {
+		return true;
 	}
-	protected Scanner getScannerFromParent() throws TableNotFoundException{
-		return parent.getScanner();
+	
+	public abstract Scanner getScanner() throws TableNotFoundException;
+	
+	@Override
+	public SerDe getKeySerde() {
+		return parent.getKeySerde();
 	}
 	@Override
-	public Scanner getScanner() throws TableNotFoundException{
-		Scanner s = getScannerFromParent();
-		IteratorSetting cfg = new IteratorSetting(parent.nextIteratorPriority(), iterator);
-		cfg.setName(iterator.getSimpleName()+parent.nextIteratorPriority());
-		cfg.addOptions(iterator_options);
-		s.addScanIterator(cfg);
-		return s;
+	public SerDe getValueSerde() {
+		return newValueSerde;
 	}
+	@Override
+	protected Authorizations getAuthorizations(){
+		return parent.getAuthorizations();
+	}
+	@Override
+	protected Connector getConnector() {
+		return parent.getConnector();
+	}	
+
+	@Override
+	public String getTable(){
+		return parent.getTable();
+	}
+	@Override
+	public byte[] getColumnFamily(){
+		return parent.getColumnFamily();
+	}
+	@Override
+	public byte[] getColumnQualifier(){
+		return parent.getColumnQualifier();
+	}
+	@Override
+	public byte[] getColumnVisibility(){
+		return parent.getColumnVisibility();
+	}
+
 }

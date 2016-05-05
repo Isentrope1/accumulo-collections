@@ -51,18 +51,7 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 	protected SerDe key_serde = null;
 	protected SerDe value_input_serde = null;
 	protected SerDe value_output_serde = null;
-	
-
-	/**
-	 * 
-	 * @param key
-	 * @param value
-	 * @return the output object. the output key is the input key
-	 * @throws IOException
-	 */
-	protected abstract Object transform(Object key,Object value) throws IOException;
-	
-	
+		
 	@Override
 	public IteratorOptions describeOptions() {
 		String desc = "An iterator that wraps a AccumuloMapFilter to filter bytes on the tablet server";
@@ -135,20 +124,4 @@ public abstract class DeserializedTransformingIterator extends TransformingItera
 	protected PartialKey getKeyPrefix() {
 		return PartialKey.ROW;
 	}
-	
-
-	@Override
-	protected final void transformRange(SortedKeyValueIterator<Key, Value> input,
-			KVBuffer output) throws IOException {
-		while(input.hasTop()){
-			Key k = input.getTopKey();
-			byte[] kd = k.getRowData().toArray();
-			Value v = input.getTopValue();
-			Object vo = value_input_serde.deserialize(v.get());
-			Object ko = key_serde.deserialize(kd);
-			output.append(k, new Value(value_output_serde.serialize(transform(ko,vo))));
-			input.next();
-		}
-	}
-
 }

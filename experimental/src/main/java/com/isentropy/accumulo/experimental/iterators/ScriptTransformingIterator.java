@@ -43,6 +43,7 @@ import com.isentropy.accumulo.collections.io.DoubleAsUtf8Serde;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.iterators.DeserializedEntryTransformingIterator;
 import com.isentropy.accumulo.iterators.DeserializedTransformingIterator;
 
 import javax.script.ScriptEngine;
@@ -50,7 +51,7 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
-public class ScriptTransformingIterator extends DeserializedTransformingIterator{
+public class ScriptTransformingIterator extends DeserializedEntryTransformingIterator{
 	public static Logger log = LoggerFactory.getLogger(ScriptTransformingIterator.class);
 	private ScriptEngine engine;
 	private String language, script;

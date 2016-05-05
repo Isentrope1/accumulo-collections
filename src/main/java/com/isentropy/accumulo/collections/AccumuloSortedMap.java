@@ -577,6 +577,27 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		};
 	}
 
+	protected class Submap extends ScannerDerivedMap<K,V>{
+		private Range range;
+		public Submap(Range r, AccumuloSortedMap<K, V> parent, SerDe derivedMapValueSerde) {
+			super(parent, derivedMapValueSerde);
+			range = r;
+		}
+
+		@Override
+		public Scanner getScanner() throws TableNotFoundException {
+			Scanner s = parent.getScanner();
+			s.setRange(range);
+			return s;
+		}
+		@Override
+		public V get(Object key) {
+			if(!range.contains(getKey(key)))
+				return null;
+			return parent.get(key);
+		}
+	}
+	
 	/**
 	 * always returns a AccumuloSortedMapBase
 	 * null accepted as no limit. returned map is READ ONLY
@@ -600,73 +621,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		//ranges are disjoint
 		if(newRange == null)
 			return new EmptyAccumuloSortedMap();
-
-		return new AccumuloSortedMap<K,V>(){
-			@Override 
-			protected int nextIteratorPriority(){
-				//subMap() doesnt add an iterator
-				return parent.nextIteratorPriority();
-			}
-			@Override
-			public boolean isReadOnly() {
-				return true;
-			}
-			@Override
-			public Scanner getScanner() throws TableNotFoundException{
-				Scanner s = parent.getScanner();
-				s.setRange(newRange);
-				return s;
-			}
-
-			@Override
-			protected Authorizations getAuthorizations(){
-				return parent.getAuthorizations();
-			}
-			@Override
-			protected Connector getConnector() {
-				return parent.getConnector();
-			}	
-
-			@Override
-			public String getTable(){
-				return parent.getTable();
-			}
-			@Override
-			public byte[] getColumnFamily(){
-				return parent.getColumnFamily();
-			}
-			@Override
-			public byte[] getColumnQualifier(){
-				return parent.getColumnQualifier();
-			}
-			@Override
-			public byte[] getColumnVisibility(){
-				return parent.getColumnVisibility();
-			}
-			@Override
-			public SerDe getKeySerde() {
-				return parent.getKeySerde();
-			}
-
-			@Override
-			public SerDe getValueSerde() {
-				return parent.getValueSerde();
-			}
-			@Override
-			public Comparator<? super K> comparator() {
-				return parent.comparator();
-			}
-
-			@Override
-			public V get(Object key) {
-				if(!newRange.contains(getKey(key)))
-					return null;
-				return parent.get(key);
-			}
-			//AccumuloSortedMap write operations throw exception if isReadOnly()
-		};
-
-
+		return new Submap(newRange,this,getValueSerde());
 	}
 
 	@Override
