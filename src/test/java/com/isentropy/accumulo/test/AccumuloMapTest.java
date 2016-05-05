@@ -46,9 +46,11 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
+import com.isentropy.accumulo.collections.AccumuloSortedMultiMap;
 import com.isentropy.accumulo.collections.AccumuloSortedProperties;
 import com.isentropy.accumulo.collections.JoinRow;
 import com.isentropy.accumulo.collections.MapAggregates;
@@ -212,12 +214,27 @@ extends TestCase
 		
 		//asm.delete();
 	}
+	public void testMultiMap(Connector c) throws AccumuloException, AccumuloSecurityException{
+		AccumuloSortedMultiMap mm = new AccumuloSortedMultiMap(c,"mm");
+		mm.put(1, 2);
+		mm.put(1, 3);
+		mm.put(1, 4);
+		mm.put(2, 22);
+		SummaryStatistics row1=(SummaryStatistics) mm.rowStats().get(1);
+		assertTrue(row1.getMean()==3.0);
+		assertTrue(row1.getMax()==4.0);
+		// size should reflect # keys
+		assertTrue(mm.size()==2);
+		
+		
+	}
 
 	public void testApp()
 	{
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
 			testMapFactory(c);
+			testMultiMap(c);
 /*
     		//setup for MiniAccumulo
 			File tempDirectory = new File("/tmp/asmTest");

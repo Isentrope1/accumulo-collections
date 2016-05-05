@@ -157,7 +157,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
 
 
-	protected abstract AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
+	protected abstract AccumuloSortedMapBase<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
 
 	/**
 	 * Create a derived map by stacking an iterator and options specified by a DerivedMapper.
@@ -170,7 +170,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 * @param mapper
 	 * @return
 	 */
-	public AccumuloSortedMapBase<K,V> deriveMap(DerivedMapper mapper){
+	public AccumuloSortedMapBase<K,?> deriveMap(DerivedMapper mapper){
 		Map<String,String> opts = mapper.getIteratorOptions();
 		if(opts == null)
 			opts = new HashMap<String,String>();

@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.mappers.RowStatsMapper;
@@ -146,7 +147,7 @@ public class AccumuloSortedMultiMap<K,V> extends AccumuloSortedMap<K,V> {
 	}
 	
 	
-	protected AccumuloSortedMap<K,V> derivedMultiMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
+	protected AccumuloSortedMap<K,?> derivedMultiMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
 		Map<String,String> itcfg = new HashMap<String,String>();
 		if(iterator_options != null)
 			itcfg.putAll(iterator_options);
@@ -158,11 +159,11 @@ public class AccumuloSortedMultiMap<K,V> extends AccumuloSortedMap<K,V> {
 		};		
 	}
 	
-	public AccumuloSortedMap<K,V> rowStats(){
+	public AccumuloSortedMap<K,?> rowStats(){
 		return deriveMultiMap(new RowStatsMapper());
 	}
 
-	public AccumuloSortedMap<K,V> deriveMultiMap(DerivedMapper mapper){
+	public AccumuloSortedMap<K,?> deriveMultiMap(DerivedMapper mapper){
 		Map<String,String> opts = mapper.getIteratorOptions();
 		if(opts == null)
 			opts = new HashMap<String,String>();

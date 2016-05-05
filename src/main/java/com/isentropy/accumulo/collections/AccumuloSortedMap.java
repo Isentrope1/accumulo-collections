@@ -622,6 +622,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		if(newRange == null)
 			return new EmptyAccumuloSortedMap();
 		return new Submap(newRange,this,getValueSerde());
+
 	}
 
 	@Override
