@@ -936,58 +936,54 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			cfg.put(SamplingFilter.OPT_MINTIMESTAMP, Long.toString(min_timestamp));
 		return derivedMapFromIterator(SamplingFilter.class,cfg,getValueSerde());
 	}
+	
+	protected class EntrySetIterator implements Iterator<java.util.Map.Entry<K, V>>{
+		Iterator<Entry<Key, Value>> wrapped;
+		protected EntrySetIterator(Iterator<Entry<Key, Value>> source){
+			wrapped = source;
+		}
+		@Override
+		public boolean hasNext() {
+			return wrapped.hasNext();
+		}
+
+		@Override
+		public java.util.Map.Entry<K, V> next() {
+			if(!hasNext()){
+				throw new NoSuchElementException();
+			}
+			final Entry<Key,Value> n = wrapped.next();
+			return new Map.Entry<K, V>(){
+				V val = (V) getValueSerde().deserialize(n.getValue().get());
+
+				@Override
+				public K getKey() {
+					return (K) getKeySerde().deserialize(n.getKey().getRowData().toArray());
+				}
+
+				@Override
+				public V getValue() {
+					return val;
+				}
+
+				@Override
+				public V setValue(V value) {
+					V prev = val;
+					val = value;
+					return prev;
+				}
+			}; 
+		}
+		
+	}
 
 	protected Iterator<java.util.Map.Entry<K, V>> iterator(){
-		return new Iterator<java.util.Map.Entry<K, V>>(){
-			Scanner s;
-			Iterator<Entry<Key, Value>> wrapped;
-			//boolean initFailed = false;
-			void initScanner(){
-				if(s!=null)
-					return;
-				try{
-					s = getScanner();
-					wrapped=s.iterator();
-				}
-				catch(TableNotFoundException e){
-					log.error(e.getMessage());
-					throw new RuntimeException(e);
-				}
-			}
-			@Override
-			public boolean hasNext() {
-				initScanner();
-				return wrapped.hasNext();
-			}
-
-			@Override
-			public java.util.Map.Entry<K, V> next() throws NoSuchElementException{
-				if(!hasNext()){
-					throw new NoSuchElementException();
-				}
-				final Entry<Key,Value> n = wrapped.next();
-				return new Map.Entry<K, V>(){
-					V val = (V) getValueSerde().deserialize(n.getValue().get());
-
-					@Override
-					public K getKey() {
-						return (K) getKeySerde().deserialize(n.getKey().getRowData().toArray());
-					}
-
-					@Override
-					public V getValue() {
-						return val;
-					}
-
-					@Override
-					public V setValue(V value) {
-						V prev = val;
-						val = value;
-						return prev;
-					}
-				}; 
-			}
-		};
+		try {
+			return new EntrySetIterator(getScanner().iterator());
+		} catch (TableNotFoundException e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**

@@ -53,10 +53,13 @@ public class JoinRow {
 		this.transformedKey = transformedKey;
 	}
 
-	public Object[] getValues() {
-		return values;
+	public Object getValue(){
+		return values[0];
 	}
-
+	public Object getJoinValue(int n){
+		return values[n+1];
+	}
+	
 	public void setValues(Object[] values) {
 		this.values = values;
 	}
@@ -69,7 +72,7 @@ public class JoinRow {
 		for(int i=0;i<values.length;i++){
 			if(i > 0)
 				sb.append(",");
-			sb.append(values[i]);
+			sb.append(values[i]==null?"null":values[i].toString());
 		}
 		sb.append("]");
 		

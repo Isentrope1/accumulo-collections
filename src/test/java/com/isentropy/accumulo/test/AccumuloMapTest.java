@@ -275,8 +275,8 @@ extends TestCase
 			for(Iterator<JoinRow> join = asm.joinOnValue(asm);join.hasNext()&&i++<20;){
 				JoinRow row = join.next();
 				System.out.println(row);
-				assertEquals(row.getTransformedKey(),row.getValues()[0]);
-				assertEquals(2*((Long) row.getValues()[0]),row.getValues()[1]);
+				assertEquals(row.getTransformedKey(),row.getValue());
+				assertEquals(2*((Long) row.getValue()),row.getJoinValue(0));
 				
 			}
 			

@@ -65,6 +65,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
 		@Override
 		public JoinRow next() {
+			//an array of N+1 (value in this map,value in map0,..., value in mapN-1)
 			Object[] outputTuple = new Object[toJoinMaps.length+1];
 			Map.Entry<K, V> e = thisMapIterator.next();
 			Object key= e.getKey();
@@ -141,7 +142,6 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 * joins to the specified maps.
 	 * @param trans 
 	 * @param joinToMaps
-	 * @return an array of N+1 (value in this map,value in map0,..., value in mapN-1)
 	 */
 	public final Iterator<JoinRow> join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
 		return new JoinIterator(trans,joinToMaps);
