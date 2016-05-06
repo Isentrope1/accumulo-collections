@@ -36,6 +36,26 @@ public class JoinRow {
 		this.setValues(values);
 	}
 
+	public int numJoinKeys(){
+		return values.length-1;
+	}
+	
+	public int numNullJoinKeys(){
+		int c=0;
+		for(int i=1;i<values.length;i++){
+			if(values[i] == null)
+				c++;
+		}
+		return c;
+	}
+	
+	public boolean allJoinKeysNull(){
+		for(int i=1;i<values.length;i++){
+			if(values[i] != null)
+				return false;
+		}
+		return true;
+	}
 
 	public Object getUntransformedKey() {
 		return untransformedKey;

@@ -12,8 +12,10 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
+import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
+import com.isentropy.accumulo.experimental.mappers.JavaScriptMappers;
 import com.isentropy.accumulo.util.Util;
 
 import static com.isentropy.accumulo.experimental.mappers.JavaScriptMappers.jsFilter;
@@ -50,14 +52,15 @@ extends TestCase
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
 	    	//set up map load [x,2*x] for x in 1 to 1000
+		/*
 			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
 	    	asm.setKeySerde(new LongBinarySerde()).setValueSerde(new DoubleBinarySerde());
 			for(long i=0;i<1000;i++){
 				asm.put(i, 2*i);
 			}
 			asm.subMap(100, 200).sample(.5).deriveMap(jsFilter("k % 2 == 0")).deriveMap(jsTransform("v*5")).dump(System.out);
-			
-			
+		*/	
+/*		
 			AccumuloSortedMap mapOfLongToMap = new AccumuloSortedMap(c,"mytable2");
 			for(long x=0;x<10;x++){
 				Map m = new HashMap();
@@ -65,9 +68,26 @@ extends TestCase
 				m.put("threex", 3*x);
 				mapOfLongToMap.put(x,m);
 			}
+			JavaScriptMappers.JavaScriptFilterMapper jm = new JavaScriptMappers.JavaScriptFilterMapper("k + v['twox'] + v['threex']",null,true);
 			// this is a map of [x,6x]
 			mapOfLongToMap.deriveMap(jsTransform("k + v['twox'] + v['threex']")).dump(System.out);;
 			System.out.println("checksum = " + mapOfLongToMap.checksum());
+*/			
+			AccumuloSortedMap mapOfLongToMap = new AccumuloSortedMap(c,"mytable2");
+			mapOfLongToMap.setKeySerde(new LongBinarySerde());
+			for(long x=0;x<10;x++){
+				String json = "{\"a\":"+(x+1)+"}";
+				mapOfLongToMap.put(x,json);
+			}
+			// this is a map of [x,6x]
+			AccumuloSortedMapBase ja = mapOfLongToMap.deriveMap(jsTransform("j['a']",true));;
+			ja.dump(System.out);
+			ja.joinOnValue(ja,ja,ja).dump(System.out);
+
+			System.out.println("checksum = " + mapOfLongToMap.checksum());
+
+			
+			
 		}
 		
 		catch(Exception e){

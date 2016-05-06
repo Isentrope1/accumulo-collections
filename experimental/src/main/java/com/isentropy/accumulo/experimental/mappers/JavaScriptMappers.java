@@ -41,16 +41,22 @@ import com.isentropy.accumulo.collections.io.SerDe;
  */
 
 public class JavaScriptMappers {
-	protected static class JavaScriptFilterMapper implements DerivedMapper{
+	public static class JavaScriptFilterMapper implements DerivedMapper{
 		private String script;
 		private SerDe derivedMapSerde=null;
-
+		private String prefix=null;
 		public JavaScriptFilterMapper(String jscript){
 			script = jscript;
 		}
 		public JavaScriptFilterMapper(String jscript, SerDe derivedMapSerde){
 			script = jscript;
 			this.derivedMapSerde = derivedMapSerde;
+		}
+		public JavaScriptFilterMapper(String jscript, SerDe derivedMapSerde,boolean parseValueAsJson){
+			script = jscript;
+			this.derivedMapSerde = derivedMapSerde;
+			if(parseValueAsJson)
+				prefix = "j = JSON.parse(v);";
 		}
 		@Override
 		public Class<? extends SortedKeyValueIterator<Key, Value>> getIterator() {
@@ -61,7 +67,7 @@ public class JavaScriptMappers {
 		public Map<String, String> getIteratorOptions() {
 			Map<String,String> itcfg = new HashMap<String,String>();
 			itcfg.put(ScriptFilter.OPT_SCRIPTING_LANGUAGE,"JavaScript");
-			itcfg.put(ScriptFilter.OPT_SCRIPT,script);			
+			itcfg.put(ScriptFilter.OPT_SCRIPT,(prefix == null? "": prefix)+script);			
 			return itcfg;
 		}
 
@@ -72,9 +78,11 @@ public class JavaScriptMappers {
 		}
 	}
 	
-	protected static class JavaScriptTransformMapper implements DerivedMapper{
+	public static class JavaScriptTransformMapper implements DerivedMapper{
 		private String script;
 		private SerDe derivedMapSerde=null;
+		private String prefix=null;
+
 		public JavaScriptTransformMapper(String jscript){
 			script = jscript;
 		}
@@ -82,6 +90,13 @@ public class JavaScriptMappers {
 			script = jscript;
 			this.derivedMapSerde = derivedMapSerde;
 		}
+		public JavaScriptTransformMapper(String jscript, SerDe derivedMapSerde,boolean parseValueAsJson){
+			script = jscript;
+			this.derivedMapSerde = derivedMapSerde;
+			if(parseValueAsJson)
+				prefix = "j = JSON.parse(v);";
+		}
+		
 		@Override
 		public Class<? extends SortedKeyValueIterator<Key, Value>> getIterator() {
 			return ScriptTransformingIterator.class;
@@ -91,7 +106,7 @@ public class JavaScriptMappers {
 		public Map<String, String> getIteratorOptions() {
 			Map<String,String> itcfg = new HashMap<String,String>();
 			itcfg.put(ScriptTransformingIterator.OPT_SCRIPTING_LANGUAGE,"JavaScript");
-			itcfg.put(ScriptTransformingIterator.OPT_SCRIPT,script);
+			itcfg.put(ScriptTransformingIterator.OPT_SCRIPT,(prefix == null? "": prefix)+script);
 			return itcfg;
 		}
 
@@ -104,10 +119,16 @@ public class JavaScriptMappers {
 	
 	
 	public static DerivedMapper jsFilter(String script){
-		return new JavaScriptFilterMapper(script);
+		return jsFilter(script,false);
+	}
+	public static DerivedMapper jsFilter(String script,boolean parseValueAsJson){
+		return new JavaScriptFilterMapper(script,null,parseValueAsJson);
 	}
 	public static DerivedMapper jsTransform(String script){
-		return new JavaScriptTransformMapper(script);
+		return jsTransform(script,false);
+	}
+	public static DerivedMapper jsTransform(String script,boolean parseValueAsJson){
+		return new JavaScriptTransformMapper(script,null,parseValueAsJson);
 	}
 
 }

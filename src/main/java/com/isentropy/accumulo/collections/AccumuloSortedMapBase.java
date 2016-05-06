@@ -44,7 +44,7 @@ import com.isentropy.accumulo.util.Util;
 
 public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
-	protected class JoinIterator implements Iterator<JoinRow>{
+	public class JoinIterator implements Iterator<JoinRow>{
 
 		AccumuloSortedMapBase[] toJoinMaps;
 		Iterator<Map.Entry<K, V>> thisMapIterator;
@@ -80,6 +80,12 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 				outputTuple[i+1]=toJoinMaps[i].get(trans==null?key:transKey);
 			}
 			return new JoinRow(key,transKey,outputTuple);
+		}
+		
+		public void dump(PrintStream ps){
+			while(hasNext()){
+				ps.println(next().toString());
+			}
 		}
 	}
 
@@ -133,7 +139,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 */
 	public abstract long getTimestamp(K key);
 
-	public final Iterator<JoinRow> join(AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator join(AccumuloSortedMapBase... joinToMaps){
 		return join(null,joinToMaps);
 	}
 
@@ -143,11 +149,11 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 * @param trans 
 	 * @param joinToMaps
 	 */
-	public final Iterator<JoinRow> join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
 		return new JoinIterator(trans,joinToMaps);
 	}
 	
-	public final Iterator<JoinRow> joinOnValue(AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator joinOnValue(AccumuloSortedMapBase... joinToMaps){
 		return new JoinIterator(new KeyValueTransformer(){
 			@Override
 			public java.util.Map.Entry transformKeyValue(Object fk, Object fv) {
