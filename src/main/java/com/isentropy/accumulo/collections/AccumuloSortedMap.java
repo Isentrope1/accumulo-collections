@@ -594,7 +594,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		public V get(Object key) {
 			if(!range.contains(getKey(key)))
 				return null;
-			return parent.get(key);
+			return (V) parent.get(key);
 		}
 	}
 	
@@ -616,7 +616,16 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 
 		Range curRange = s.getRange();
-		Range requestedRange = new Range(getKey(fromKey),inc1,getKey(toKey),inc2);
+
+		Key fk = getKey(fromKey);
+		if(fk != null)
+			fk.setTimestamp(inc1?Long.MAX_VALUE:0);
+
+		Key tk = getKey(toKey);
+		if(tk != null)
+			tk.setTimestamp(inc2?0:Long.MAX_VALUE);
+
+		Range requestedRange = new Range(fk,inc1,tk,inc2);
 		final Range newRange = curRange == null ? requestedRange : curRange.clip(requestedRange,true);
 		//ranges are disjoint
 		if(newRange == null)
@@ -874,13 +883,14 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 
 
 	@Override
-	protected AccumuloSortedMapBase<K,V> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
+	protected AccumuloSortedMapBase<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
 		Map<String,String> itcfg = new HashMap<String,String>();
 		if(iterator_options != null)
 			itcfg.putAll(iterator_options);
 		return new IteratorStackedSubmap<K,V>(this,iterator,itcfg,derivedMapValueSerde);		
 	}
 
+	@Override
 	public AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long min_timestamp, final long max_timestamp){
 		Map<String,String> cfg = new HashMap<String,String>();
 		cfg.put(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
@@ -890,7 +900,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			cfg.put(SamplingFilter.OPT_MAXTIMESTAMP, Long.toString(max_timestamp));
 		if(min_timestamp > 0)
 			cfg.put(SamplingFilter.OPT_MINTIMESTAMP, Long.toString(min_timestamp));
-		return derivedMapFromIterator(SamplingFilter.class,cfg,getValueSerde());
+		return new IteratorStackedSubmap<K,V>(this,SamplingFilter.class,cfg,getValueSerde());
 	}
 	
 	protected class EntrySetIterator implements Iterator<java.util.Map.Entry<K, V>>{

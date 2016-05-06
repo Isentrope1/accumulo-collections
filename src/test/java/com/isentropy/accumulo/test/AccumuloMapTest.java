@@ -326,6 +326,7 @@ extends TestCase
 			assertTrue(asm.size() == 1000);
 			assertTrue(asm.values().contains(1002l));
 			assertFalse(asm.values().contains(1001l));
+			int hs = asm.headMap(123).size();
 			assertTrue(asm.headMap(123).size() == 123);
 			assertTrue(asm.tailMap(123).size() == 1000 -123);
 			
@@ -392,6 +393,11 @@ extends TestCase
 			assertTrue(err);
 			submap = submap.subMap(11, 33);
 			assertTrue(submap.size() == 9);
+			assertTrue(submap.get(11).equals(asm.get(11)));
+			assertTrue(submap.get(12).equals(asm.get(12)));
+			//System.out.println("submap.get(11) = "+submap.get(11));
+			//System.out.println("asm.get(11) = "+asm.get(11));
+
 			System.out.println("submap(10,20).submap(11,33)");
 			printCollections(submap);
 			System.out.println("submap(10,20).submap(11,33).sample(.5)");

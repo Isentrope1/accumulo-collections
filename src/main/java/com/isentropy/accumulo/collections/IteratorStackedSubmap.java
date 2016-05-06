@@ -39,7 +39,7 @@ public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
 	private Class<? extends SortedKeyValueIterator<Key, Value>> iterator;
 	private Map<String,String> iterator_options;
 	
-	public IteratorStackedSubmap(AccumuloSortedMap<K,V> parent, Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde) {
+	public IteratorStackedSubmap(AccumuloSortedMap<K,?> parent, Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde) {
 		super(parent,derivedMapValueSerde);
 		this.iterator = iterator;
 		this.iterator_options = iterator_options;

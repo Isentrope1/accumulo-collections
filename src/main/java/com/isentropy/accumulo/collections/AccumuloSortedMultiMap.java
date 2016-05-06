@@ -159,6 +159,10 @@ public class AccumuloSortedMultiMap<K,V> extends AccumuloSortedMap<K,V> {
 		};		
 	}
 	
+	/**
+	 * @return
+	 */
+	
 	public AccumuloSortedMap<K,?> rowStats(){
 		return deriveMultiMap(new RowStatsMapper());
 	}

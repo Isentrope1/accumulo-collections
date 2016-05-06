@@ -39,10 +39,10 @@ import com.isentropy.accumulo.iterators.SamplingFilter;
  * derived map that comes from modifying scanner
  */
 public abstract class ScannerDerivedMap<K,V> extends AccumuloSortedMap<K,V>{
-	protected AccumuloSortedMap<K,V> parent;
+	protected AccumuloSortedMap<K,?> parent;
 	protected SerDe newValueSerde;
 	
-	public ScannerDerivedMap(AccumuloSortedMap<K,V> parent, SerDe derivedMapValueSerde) {
+	public ScannerDerivedMap(AccumuloSortedMap<K,?> parent, SerDe derivedMapValueSerde) {
 		this.parent = parent;
 		newValueSerde = derivedMapValueSerde;
 	}
