@@ -395,6 +395,8 @@ extends TestCase
 			assertTrue(submap.size() == 9);
 			assertTrue(submap.get(11).equals(asm.get(11)));
 			assertTrue(submap.get(12).equals(asm.get(12)));
+			assertTrue(submap.lastKey().equals(19l));
+			
 			//System.out.println("submap.get(11) = "+submap.get(11));
 			//System.out.println("asm.get(11) = "+asm.get(11));
 

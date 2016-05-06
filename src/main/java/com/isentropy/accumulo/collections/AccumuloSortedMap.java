@@ -26,6 +26,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -64,6 +65,7 @@ import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.iterators.AggregateIterator;
 import com.isentropy.accumulo.iterators.SamplingFilter;
@@ -146,7 +148,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	public boolean isReadOnly(){
 		return readOnly;
 	}
-	
+
 	public AccumuloSortedMap<K, V> setReadOnly(boolean ro){
 		readOnly = ro;
 		return this;
@@ -597,7 +599,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			return (V) parent.get(key);
 		}
 	}
-	
+
 	/**
 	 * always returns a AccumuloSortedMapBase
 	 * null accepted as no limit. returned map is READ ONLY
@@ -642,30 +644,14 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	@Override
 	/**
 	 * is there no way in accumulo to efficiently scan to last key??
+	 * 
+	 * this method uses count iterator (which returns last key from each tablet server)
+	 * 
 	 * @return
 	 */
 	public K lastKey() {
-		throw new UnsupportedOperationException();
-		/*
-		 * this code works but iterates through the entire table:
-		 * 
-		 * 
-		Scanner s;
-		try {
-			s = getScanner();
-			Iterator<Entry<Key,Value>> it = s.iterator();
-			K last=null;
-			while(it.hasNext()){
-				Entry<Key,Value> e = it.next();
-				last = (K) serde.deserialize(e.getKey().getRowData().getBackingArray());
-			}
-			return last;
-		} catch (TableNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		return null;
-		 */
+		K k = Collections.max(deriveMap(new CountsDerivedMapper()).keySet(), comparator());
+		return k;
 	}
 
 	protected class KeySetIterator implements Iterator<K>{
@@ -902,7 +888,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			cfg.put(SamplingFilter.OPT_MINTIMESTAMP, Long.toString(min_timestamp));
 		return new IteratorStackedSubmap<K,V>(this,SamplingFilter.class,cfg,getValueSerde());
 	}
-	
+
 	protected class EntrySetIterator implements Iterator<java.util.Map.Entry<K, V>>{
 		Iterator<Entry<Key, Value>> wrapped;
 		protected EntrySetIterator(Iterator<Entry<Key, Value>> source){
@@ -940,7 +926,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 				}
 			}; 
 		}
-		
+
 	}
 
 	protected Iterator<java.util.Map.Entry<K, V>> iterator(){
