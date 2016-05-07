@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.isentropy.accumulo.collections.io.SerDe;
+import com.isentropy.accumulo.collections.transform.InvertKV;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.util.Util;
 
@@ -48,12 +49,12 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
 		AccumuloSortedMapBase[] toJoinMaps;
 		Iterator<Map.Entry<K, V>> thisMapIterator;
-		KeyValueTransformer trans;
+		KeyValueTransformer[] trans;
 		Object[] outputTuple;
-		protected JoinIterator(AccumuloSortedMapBase... joinToMaps) {
-			this(null,joinToMaps);
+		protected JoinIterator(AccumuloSortedMapBase[] joinToMaps) {
+			this(joinToMaps,null);
 		}
-		protected JoinIterator(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps) {
+		protected JoinIterator(AccumuloSortedMapBase[] joinToMaps,KeyValueTransformer... trans) {
 			toJoinMaps = joinToMaps;	
 			thisMapIterator = entrySet().iterator();
 			this.trans = trans;
@@ -71,9 +72,16 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 			Object key= e.getKey();
 			Object value = e.getValue();
 			Object transKey = null;
+			//not used atm
+			Object transValue = null;
 			if(trans != null){
-				Map.Entry te = trans.transformKeyValue(key, value);
-				transKey = te.getKey();
+				transKey = key;
+				transValue = value;
+				for(KeyValueTransformer kvt: trans){
+					Map.Entry te = kvt.transformKeyValue(transKey,transValue);
+					transKey = te.getKey();					
+					transValue = te.getValue();
+				}
 			}
 			outputTuple[0]=value;
 			for(int i=0;i<toJoinMaps.length;i++){
@@ -139,9 +147,6 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 */
 	public abstract long getTimestamp(K key);
 
-	public final JoinIterator join(AccumuloSortedMapBase... joinToMaps){
-		return join(null,joinToMaps);
-	}
 
 	/**
 	 * iterates over this map, optionally applying a KeyValueTransformer to key (not value), 
@@ -149,16 +154,17 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 * @param trans 
 	 * @param joinToMaps
 	 */
-	public final JoinIterator join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
-		return new JoinIterator(trans,joinToMaps);
+	public final JoinIterator join(KeyValueTransformer trans[],AccumuloSortedMapBase... joinToMaps){
+		return new JoinIterator(joinToMaps,trans);
 	}
-	
+	public final JoinIterator join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
+		return new JoinIterator(joinToMaps,trans);
+	}
+	public final JoinIterator join(AccumuloSortedMapBase... joinToMaps){
+		return new JoinIterator(joinToMaps,null);
+	}
 	public final JoinIterator joinOnValue(AccumuloSortedMapBase... joinToMaps){
-		return new JoinIterator(new KeyValueTransformer(){
-			@Override
-			public java.util.Map.Entry transformKeyValue(Object fk, Object fv) {
-				return new AbstractMap.SimpleEntry(fv,null);
-			}},joinToMaps);
+		return new JoinIterator(joinToMaps,new InvertKV());
 	}
 
 
