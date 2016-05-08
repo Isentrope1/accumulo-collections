@@ -47,14 +47,14 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
 	public class JoinIterator implements Iterator<JoinRow>{
 
-		AccumuloSortedMapBase[] toJoinMaps;
+		Map[] toJoinMaps;
 		Iterator<Map.Entry<K, V>> thisMapIterator;
 		KeyValueTransformer[] trans;
 		Object[] outputTuple;
 		protected JoinIterator(AccumuloSortedMapBase[] joinToMaps) {
 			this(joinToMaps,null);
 		}
-		protected JoinIterator(AccumuloSortedMapBase[] joinToMaps,KeyValueTransformer... trans) {
+		protected JoinIterator(Map[] joinToMaps,KeyValueTransformer... trans) {
 			toJoinMaps = joinToMaps;	
 			thisMapIterator = entrySet().iterator();
 			this.trans = trans;
@@ -149,21 +149,22 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
 
 	/**
-	 * iterates over this map, optionally applying a KeyValueTransformer to key (not value), 
-	 * joins to the specified maps.
+	 * iterates over this map then joins to the specified maps using key, which is
+	 * transformed by KeyValueTransformers if supplied
+	 * 
 	 * @param trans 
 	 * @param joinToMaps
 	 */
-	public final JoinIterator join(KeyValueTransformer trans[],AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator join(KeyValueTransformer trans[],Map... joinToMaps){
 		return new JoinIterator(joinToMaps,trans);
 	}
-	public final JoinIterator join(KeyValueTransformer trans,AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator join(KeyValueTransformer trans,Map... joinToMaps){
 		return new JoinIterator(joinToMaps,trans);
 	}
-	public final JoinIterator join(AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator join(Map... joinToMaps){
 		return new JoinIterator(joinToMaps,null);
 	}
-	public final JoinIterator joinOnValue(AccumuloSortedMapBase... joinToMaps){
+	public final JoinIterator joinOnValue(Map... joinToMaps){
 		return new JoinIterator(joinToMaps,new InvertKV());
 	}
 
