@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -272,6 +273,15 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 			ps.println("k = "+e.getKey()+" : v = "+e.getValue());
 		}
 		ps.flush();
+	}
+	/**
+	 * 
+	 * @return a local in memory TreeMap copy containing this ENTIRE map 
+	 */
+	public final SortedMap<K,V> localCopy(){
+		TreeMap<K,V> local = new TreeMap<K,V>();
+		local.putAll(this);
+		return local;
 	}
 
 
