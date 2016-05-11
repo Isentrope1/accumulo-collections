@@ -199,4 +199,9 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 		return -1;
 	}
 
+	@Override
+	public Link makeLink(Object key) {
+		return new Link(null,null,null,key);
+	}
+
 }

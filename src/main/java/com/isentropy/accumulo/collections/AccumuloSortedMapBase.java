@@ -31,6 +31,8 @@ import java.util.SortedMap;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import jline.internal.Log;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
@@ -38,7 +40,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-
+import static com.isentropy.accumulo.collections.Link.resolve;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.transform.InvertKV;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
@@ -46,6 +48,7 @@ import com.isentropy.accumulo.util.Util;
 
 public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
+	/*
 	public class JoinIterator implements Iterator<JoinRow>{
 
 		Map[] toJoinMaps;
@@ -97,7 +100,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 			}
 		}
 	}
-
+	 */
 
 
 	/*
@@ -149,13 +152,13 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public abstract long getTimestamp(K key);
 
 
-	/**
+	/*
 	 * iterates over this map then joins to the specified maps using key, which is
 	 * transformed by KeyValueTransformers if supplied
 	 * 
 	 * @param trans 
 	 * @param joinToMaps
-	 */
+	 
 	public final JoinIterator join(KeyValueTransformer trans[],Map... joinToMaps){
 		return new JoinIterator(joinToMaps,trans);
 	}
@@ -168,7 +171,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public final JoinIterator joinOnValue(Map... joinToMaps){
 		return new JoinIterator(joinToMaps,new InvertKV());
 	}
-
+	*/
 
 
 	protected abstract AccumuloSortedMapBase<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
@@ -275,13 +278,18 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 		ps.flush();
 	}
 	/**
-	 * 
 	 * @return a local in memory TreeMap copy containing this ENTIRE map 
 	 */
 	public final SortedMap<K,V> localCopy(){
 		TreeMap<K,V> local = new TreeMap<K,V>();
 		local.putAll(this);
 		return local;
+	}
+	
+	public abstract Link makeLink(Object key);
+	
+	public Object getResolvedLink(K key) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
+		return resolve(get(key));
 	}
 
 

@@ -34,6 +34,7 @@ import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.io.Utf8Serde;
+import com.isentropy.accumulo.util.Util;
 
 /**
  * 
@@ -54,23 +55,25 @@ public class AccumuloSortedMapFactory<K,V> {
 
 	public static final String MAP_PROPERTY_KEY_SERDE=AccumuloSortedMapBase.OPT_KEY_SERDE;
 	public static final String MAP_PROPERTY_VALUE_SERDE=AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
+	public static final String MAP_PROPERTY_TABLE_NAME="table_name";
+	public static final int RANDOM_TABLE_NAME_LENGTH = 20;
 
 	
-	private AccumuloSortedMap<String,Properties> tableNameToProperties;
+	private AccumuloSortedMap<String,Properties> tableAliasToProperties;
 	String metadataTable;
 	Connector conn;
 	public AccumuloSortedMapFactory(Connector c, String metadataTable) throws AccumuloException, AccumuloSecurityException {
 		conn = c;
 		this.metadataTable = metadataTable;
-		tableNameToProperties = new AccumuloSortedMap<String,Properties>(c,metadataTable);		
-		tableNameToProperties.setKeySerde(new Utf8Serde());
-		tableNameToProperties.setValueSerde(new JavaSerializationSerde());
+		tableAliasToProperties = new AccumuloSortedMap<String,Properties>(c,metadataTable);		
+		tableAliasToProperties.setKeySerde(new Utf8Serde());
+		tableAliasToProperties.setValueSerde(new JavaSerializationSerde());
 		addDefaultProperty(MAP_PROPERTY_KEY_SERDE, JavaSerializationSerde.class.getName());
 		addDefaultProperty(MAP_PROPERTY_VALUE_SERDE, JavaSerializationSerde.class.getName());
 	}
 	
 	protected Properties getProperties(String tableName){
-		return tableNameToProperties.get(tableName);
+		return tableAliasToProperties.get(tableName);
 	}
 	/**
 	 * this sets up the map according to the metadata, setting serdes
@@ -82,24 +85,35 @@ public class AccumuloSortedMapFactory<K,V> {
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
 	 */
-	public FactoryAccumuloSortedMap<K,V> makeMap(String tableName) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		FactoryAccumuloSortedMap<K,V> out = new FactoryAccumuloSortedMap<K,V>(conn,tableName);
-		Properties props = tableNameToProperties.get(DEFAULT_SETTING_METATABLENAME);
-		if(props == null)
+	public FactoryAccumuloSortedMap<K,V> makeMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		return makeMap(tableAlias,true);
+	}
+	public FactoryAccumuloSortedMap<K,V> makeMap(String tableAlias, boolean create) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		Properties props = tableAliasToProperties.get(DEFAULT_SETTING_METATABLENAME);
+		if(props == null){
 			props = new Properties();
-		Properties p = getProperties(tableName);
+		}
+		String tableName;
+		Properties p = getProperties(tableAlias);
 		if(p != null)
 			props.putAll(p);
-		configureMap(out,props);
+		if((tableName = props.getProperty(MAP_PROPERTY_TABLE_NAME)) == null){
+			tableName = Util.randomHexString(RANDOM_TABLE_NAME_LENGTH);
+			props.put(MAP_PROPERTY_TABLE_NAME, tableName);
+			tableAliasToProperties.put(tableAlias, props);
+		}
+		
+		FactoryAccumuloSortedMap<K,V> out = new FactoryAccumuloSortedMap<K,V>(conn,tableName,create);
+		configureMap(out,props,tableAlias);
 		return out;
 	}
-	public FactoryAccumuloSortedMap<K,V> makeReadOnlyMap(String tableName) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		FactoryAccumuloSortedMap<K,V> map = makeMap(tableName);
+	public FactoryAccumuloSortedMap<K,V> makeReadOnlyMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		FactoryAccumuloSortedMap<K,V> map = makeMap(tableAlias);
 		map.setReadOnly(true);
 		return map;
 	}
 	
-	protected void configureMap(FactoryAccumuloSortedMap<K,V> map, Properties props) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
+	protected void configureMap(FactoryAccumuloSortedMap<K,V> map, Properties props,String tableAlias) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
 		String v;
 		if((v = props.getProperty(MAP_PROPERTY_KEY_SERDE)) != null){
 			map.setKeySerde((SerDe) Class.forName(v).newInstance());
@@ -107,6 +121,8 @@ public class AccumuloSortedMapFactory<K,V> {
 		if((v = props.getProperty(MAP_PROPERTY_VALUE_SERDE)) != null){
 			map.setValueSerde((SerDe) Class.forName(v).newInstance());
 		}
+		map.setTableAlias(tableAlias);
+		map.setFactoryName(metadataTable);
 	}
 	
 	public void addDefaultProperty(String key,String value){
@@ -118,7 +134,7 @@ public class AccumuloSortedMapFactory<K,V> {
 			p = new Properties();
 		}
 		p.setProperty(key, value);		
-		tableNameToProperties.put(tableName, p);
+		tableAliasToProperties.put(tableName, p);
 	}
 	public String getMapSpecificProperty(String tableName,String key){
 		Properties p = getProperties(tableName);

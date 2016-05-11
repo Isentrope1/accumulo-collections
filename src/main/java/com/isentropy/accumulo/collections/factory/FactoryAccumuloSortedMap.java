@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.Connector;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
+import com.isentropy.accumulo.collections.Link;
 import com.isentropy.accumulo.collections.io.SerDe;
 
 /**
@@ -36,8 +37,14 @@ import com.isentropy.accumulo.collections.io.SerDe;
  * @param <V>
  */
 public class FactoryAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
+	protected String factoryName,tableAlias;
 	public FactoryAccumuloSortedMap(Connector c, String table) throws AccumuloException, AccumuloSecurityException{
 		super(c,table);
+		super.setKeySerde(null);
+		super.setValueSerde(null);
+	}
+	public FactoryAccumuloSortedMap(Connector c, String table, boolean create) throws AccumuloException, AccumuloSecurityException{
+		super(c,table,create,false);
 		super.setKeySerde(null);
 		super.setValueSerde(null);
 	}
@@ -57,6 +64,24 @@ public class FactoryAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
 		else
 			throw new UnsupportedOperationException("cant setValueSerde on a factory-created map. set serde from factory.");
 	}
-
+	public String getFactoryName(){
+		return factoryName;
+	}
+	protected void setFactoryName(String name){
+		factoryName = name;
+	}
+	
+	public String getTableAlias(){
+		return tableAlias;
+	}
+	protected void setTableAlias(String name){
+		tableAlias = name;
+	}
+	
+	
+	@Override
+	public Link makeLink(Object key) {
+		return new Link(getConnector(),factoryName,getTableAlias(),key);
+	}
 
 }

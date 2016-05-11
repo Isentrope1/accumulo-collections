@@ -120,12 +120,12 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return new AccumuloSortedMap(c,table);
 	}
 	public AccumuloSortedMap(Connector c,String table) throws AccumuloException, AccumuloSecurityException {
-		this(c,table,false);
+		this(c,table,true,false);
 	}
-	public AccumuloSortedMap(Connector c,String table, boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException {
+	public AccumuloSortedMap(Connector c,String table, boolean createTable,boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException {
 		conn = c;
 		this.table = table;
-		init(errorIfTableAlreadyExists);
+		init(createTable,errorIfTableAlreadyExists);
 	}
 	protected AccumuloSortedMap(){};
 	/* (non-Javadoc)
@@ -169,10 +169,15 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		valueSerde=s;
 		return this;
 	}
-	protected void init(boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException{
+	protected void init(boolean createTable, boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException{
 		try {
-			createTable();
-		} 
+			if(createTable){
+				if(!conn.tableOperations().list().contains(getTable()))
+					createTable();
+				else if(errorIfTableAlreadyExists)
+					throw new AccumuloException("tried to create existing table "+getTable()+" and errorIfTableAlreadyExists=true");
+			}
+		}
 		catch (TableExistsException e) {
 			if(errorIfTableAlreadyExists)
 				throw new AccumuloException(e);
@@ -377,7 +382,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		Entry<Key, Value> e = getEntry(key);
 		if(e == null)
 			return null;
-		return (V) getValueSerde().deserialize(e.getValue().get());		
+		return deserializeValue(e.getValue().get());		
 	}
 
 	@Override
@@ -888,6 +893,13 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			cfg.put(SamplingFilter.OPT_MINTIMESTAMP, Long.toString(min_timestamp));
 		return new IteratorStackedSubmap<K,V>(this,SamplingFilter.class,cfg,getValueSerde());
 	}
+	protected V deserializeValue(byte[] b){
+		V o = (V) getValueSerde().deserialize(b);
+		if(o != null && o instanceof Link){
+			((Link) o).setConnector(getConnector());
+		}
+		return o;
+	}
 
 	protected class EntrySetIterator implements Iterator<java.util.Map.Entry<K, V>>{
 		Iterator<Entry<Key, Value>> wrapped;
@@ -906,7 +918,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			}
 			final Entry<Key,Value> n = wrapped.next();
 			return new Map.Entry<K, V>(){
-				V val = (V) getValueSerde().deserialize(n.getValue().get());
+				V val = deserializeValue(n.getValue().get());
 
 				@Override
 				public K getKey() {
@@ -1070,6 +1082,11 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			log.error(e.getMessage());
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public Link makeLink(Object key) {
+		return new Link(conn,null,getTable(),key);
 	}
 
 }
