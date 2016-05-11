@@ -68,6 +68,7 @@ import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.iterators.AggregateIterator;
+import com.isentropy.accumulo.iterators.RegexFilter;
 import com.isentropy.accumulo.iterators.SamplingFilter;
 import com.isentropy.accumulo.iterators.StatsAggregateIterator;
 import com.isentropy.accumulo.util.KeyValue;
@@ -1085,8 +1086,19 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	}
 
 	@Override
-	public Link makeLink(Object key) {
-		return new Link(conn,null,getTable(),key);
+	public Link<V> makeLink(Object key) {
+		return new Link<V>(conn,null,getTable(),key);
+	}
+	@Override
+	public AccumuloSortedMapBase<K, V> regexFilter(String keyRegex,
+			String valueRegex) {
+		Map<String,String> cfg = new HashMap<String,String>();
+		if(keyRegex != null)
+			cfg.put(RegexFilter.OPT_KEYREGEX, keyRegex);
+		if(valueRegex != null)
+			cfg.put(RegexFilter.OPT_VALUEREGEX, valueRegex);
+		configureSerdes(cfg,getValueSerde());
+		return new IteratorStackedSubmap<K,V>(this,RegexFilter.class,cfg,getValueSerde());
 	}
 
 }

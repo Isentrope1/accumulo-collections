@@ -200,8 +200,14 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMapBase<K, V> {
 	}
 
 	@Override
-	public Link makeLink(Object key) {
-		return new Link(null,null,null,key);
+	public Link<V> makeLink(Object key) {
+		return new Link<V>(null,null,null,key);
+	}
+
+	@Override
+	public AccumuloSortedMapBase<K, V> regexFilter(String keyRegex,
+			String valueRegex) {
+		return this;
 	}
 
 }

@@ -188,18 +188,21 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 * @return
 	 */
 	public AccumuloSortedMapBase<K,?> deriveMap(DerivedMapper mapper){
-		Map<String,String> opts = mapper.getIteratorOptions();
+		SerDe output_value_serde = mapper.getDerivedMapValueSerde();
+		Map<String,String> opts = configureSerdes(mapper.getIteratorOptions(),output_value_serde);
+		return derivedMapFromIterator(mapper.getIterator(),opts, output_value_serde == null ? getValueSerde():output_value_serde);
+	}
+	
+	protected Map<String,String> configureSerdes(Map<String,String> opts,SerDe output_value_serde){
 		if(opts == null)
 			opts = new HashMap<String,String>();
 		opts.put(OPT_KEY_SERDE, getKeySerde().getClass().getName());
 		opts.put(OPT_VALUE_INPUT_SERDE, getValueSerde().getClass().getName());
-		SerDe output_value_serde = mapper.getDerivedMapValueSerde();
 		if(output_value_serde != null)
 			opts.put(OPT_VALUE_OUTPUT_SERDE, output_value_serde.getClass().getName());
 		else
 			opts.put(OPT_VALUE_OUTPUT_SERDE, getValueSerde().getClass().getName());
-
-		return derivedMapFromIterator(mapper.getIterator(),opts, output_value_serde == null ? getValueSerde():output_value_serde);
+		return opts;
 	}
 
 	public abstract AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed,long min_timestamp, long max_timestamp);
@@ -286,11 +289,22 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 		return local;
 	}
 	
-	public abstract Link makeLink(Object key);
+	public abstract Link<V> makeLink(Object key);
 	
 	public Object getResolvedLink(K key) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
 		return resolve(get(key));
 	}
+	
+	public abstract AccumuloSortedMapBase<K, V>  regexFilter(String keyRegex,String valueRegex);
+
+	public final AccumuloSortedMapBase<K, V>  regexValueFilter(String valueRegex){
+		return regexFilter(null,valueRegex);
+	}
+	public final AccumuloSortedMapBase<K, V>  regexKeyFilter(String keyRegex){
+		return regexFilter(keyRegex,null);
+	}
+		
+	
 
 
 }

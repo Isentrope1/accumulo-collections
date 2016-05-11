@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.Connector;
 
 import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 
-public class Link implements Serializable {
+public class Link<V> implements Serializable {
 
 	private String factoryName=null,tableName=null;
 	private Object key=null;
@@ -44,7 +44,7 @@ public class Link implements Serializable {
 		tableName=table_name;
 		this.key = key;
 	}
-	public Object resolve() throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+	public V resolve() throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		if(conn == null)
 			return null;
 		if(tableName == null)
@@ -61,7 +61,7 @@ public class Link implements Serializable {
 				map = new AccumuloSortedMap(conn,tableName,false,false);
 			}
 		}
-		return map.get(key);
+		return (V) map.get(key);
 	}
 	public void setConnector(Connector c){
 		conn = c;

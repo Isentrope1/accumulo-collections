@@ -300,6 +300,8 @@ extends TestCase
 			}
 			long postaddts = System.currentTimeMillis();
 			long ts123 = asm.getTimestamp(123);
+			
+			asm.regexFilter("20", "4").dump(System.out);;
 		
 			//test join
 			/*
