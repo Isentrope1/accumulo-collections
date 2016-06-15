@@ -40,7 +40,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static com.isentropy.accumulo.collections.Link.resolve;
+
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.transform.InvertKV;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
@@ -48,6 +52,9 @@ import com.isentropy.accumulo.util.Util;
 
 public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 
+	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMapBase.class);
+
+	public static long DEFAULT_WAIT_MS = 1000;
 	/*
 	public class JoinIterator implements Iterator<JoinRow>{
 
@@ -303,8 +310,21 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public final AccumuloSortedMapBase<K, V>  regexKeyFilter(String keyRegex){
 		return regexFilter(keyRegex,null);
 	}
-		
 	
+	public final V waitFor(K key, long maxms) throws InterruptedException{
+		return waitFor(key,maxms,DEFAULT_WAIT_MS);
+	}
+	public final V waitFor(K key, long maxms, long incms) throws InterruptedException{
+		long waited =0;
+		V val=null;
+		while((val=get(key)) == null && waited <= maxms){
+			long waitTime = incms <= maxms - waited ? incms : maxms - waited;
+			log.debug("waitFor wating "+waitTime+"ms");
+			Thread.sleep(waitTime);
+			waited += waitTime;
+		}
+		return val;
+	}
 
 
 }
