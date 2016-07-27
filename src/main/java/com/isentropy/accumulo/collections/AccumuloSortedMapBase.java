@@ -55,59 +55,6 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMapBase.class);
 
 	public static long DEFAULT_WAIT_MS = 1000;
-	/*
-	public class JoinIterator implements Iterator<JoinRow>{
-
-		Map[] toJoinMaps;
-		Iterator<Map.Entry<K, V>> thisMapIterator;
-		KeyValueTransformer[] trans;
-		Object[] outputTuple;
-		protected JoinIterator(AccumuloSortedMapBase[] joinToMaps) {
-			this(joinToMaps,null);
-		}
-		protected JoinIterator(Map[] joinToMaps,KeyValueTransformer... trans) {
-			toJoinMaps = joinToMaps;	
-			thisMapIterator = entrySet().iterator();
-			this.trans = trans;
-		}
-		@Override
-		public boolean hasNext() {
-			return thisMapIterator.hasNext();
-		}
-
-		@Override
-		public JoinRow next() {
-			//an array of N+1 (value in this map,value in map0,..., value in mapN-1)
-			Object[] outputTuple = new Object[toJoinMaps.length+1];
-			Map.Entry<K, V> e = thisMapIterator.next();
-			Object key= e.getKey();
-			Object value = e.getValue();
-			Object transKey = null;
-			//not used atm
-			Object transValue = null;
-			if(trans != null){
-				transKey = key;
-				transValue = value;
-				for(KeyValueTransformer kvt: trans){
-					Map.Entry te = kvt.transformKeyValue(transKey,transValue);
-					transKey = te.getKey();					
-					transValue = te.getValue();
-				}
-			}
-			outputTuple[0]=value;
-			for(int i=0;i<toJoinMaps.length;i++){
-				outputTuple[i+1]=toJoinMaps[i].get(trans==null?key:transKey);
-			}
-			return new JoinRow(key,transKey,outputTuple);
-		}
-		
-		public void dump(PrintStream ps){
-			while(hasNext()){
-				ps.println(next().toString());
-			}
-		}
-	}
-	 */
 
 
 	/*
@@ -157,29 +104,6 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	 * @return the accumulo timestamp (mod time) of the key of -1 if key is absent
 	 */
 	public abstract long getTimestamp(K key);
-
-
-	/*
-	 * iterates over this map then joins to the specified maps using key, which is
-	 * transformed by KeyValueTransformers if supplied
-	 * 
-	 * @param trans 
-	 * @param joinToMaps
-	 
-	public final JoinIterator join(KeyValueTransformer trans[],Map... joinToMaps){
-		return new JoinIterator(joinToMaps,trans);
-	}
-	public final JoinIterator join(KeyValueTransformer trans,Map... joinToMaps){
-		return new JoinIterator(joinToMaps,trans);
-	}
-	public final JoinIterator join(Map... joinToMaps){
-		return new JoinIterator(joinToMaps,null);
-	}
-	public final JoinIterator joinOnValue(Map... joinToMaps){
-		return new JoinIterator(joinToMaps,new InvertKV());
-	}
-	*/
-
 
 	protected abstract AccumuloSortedMapBase<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde);
 
@@ -290,7 +214,7 @@ public abstract class AccumuloSortedMapBase<K, V> implements SortedMap<K,V>{
 	/**
 	 * @return a local in memory TreeMap copy containing this ENTIRE map 
 	 */
-	public final SortedMap<K,V> localCopy(){
+	public final TreeMap<K,V> localCopy(){
 		TreeMap<K,V> local = new TreeMap<K,V>();
 		local.putAll(this);
 		return local;
