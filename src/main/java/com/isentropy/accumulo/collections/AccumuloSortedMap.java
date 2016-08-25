@@ -22,6 +22,8 @@ limitations under the License.
 
 package com.isentropy.accumulo.collections;
 
+import static com.isentropy.accumulo.collections.ForeignKey.resolve;
+
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -37,6 +39,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -66,6 +70,7 @@ import org.slf4j.LoggerFactory;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
+import com.isentropy.accumulo.collections.mappers.RowStatsMapper;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.iterators.AggregateIterator;
 import com.isentropy.accumulo.iterators.RegexFilter;
@@ -82,14 +87,32 @@ import com.isentropy.accumulo.util.Util;
  *
  */
 
-public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
+public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMap.class);
+	public static long DEFAULT_WAIT_MS = 1000;
+	/*
+	 * iterators used in deriveMap will be passed SerDe classname info via these iterator params
+	 */
+	public static final String OPT_KEY_SERDE = "key_serde";
+	public static final String OPT_VALUE_INPUT_SERDE = "value_input_serde";
+	public static final String OPT_VALUE_OUTPUT_SERDE = "value_output_serde";
+
+
+	private static final int DEFAULT_RANDSEED_LENGTH=20;
 
 
 	protected static final int ITERATOR_PRIORITY_AGEOFF = 10;
-	protected static final int SUBMAP_ITERATOR_PRIORITY_MIN = 100;
+	// this is the priority that the first stacked iterator will be be added at
+	protected static final int DERIVEDMAP_ITERATOR_PRIORITY_MIN = 100;
 	protected static final String ITERATOR_NAME_AGEOFF = "ageoff";
+
+	protected static final int ITERATOR_PRIORITY_VERSIONING = 20;
+	//"vers" is the default VersioningIterator name in Accumulo
+	protected static final String ITERATOR_NAME_VERSIONING = "vers";
+	protected int max_values_per_key=1;
+
+
 
 	private Connector conn;
 	private String table;
@@ -132,20 +155,18 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getKeySerde()
 	 */
-	@Override
+
 	public SerDe getKeySerde(){
 		return keySerde;
 	}
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setKeySerde(com.isentropy.accumulo.collections.io.SerDe)
 	 */
-	@Override
 	public AccumuloSortedMap<K, V> setKeySerde(SerDe s){
 		keySerde=s;
 		return this;
 	}
 
-	@Override
 	public boolean isReadOnly(){
 		return readOnly;
 	}
@@ -158,14 +179,12 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getValueSerde()
 	 */
-	@Override
 	public SerDe getValueSerde(){
 		return valueSerde;
 	}
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setValueSerde(com.isentropy.accumulo.collections.io.SerDe)
 	 */
-	@Override
 	public AccumuloSortedMap<K, V> setValueSerde(SerDe s){
 		valueSerde=s;
 		return this;
@@ -192,14 +211,13 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * submaps may pile on iterators to chain of getScanner. this method returns the next iterator priority
 	 */
 	protected int nextIteratorPriority(){
-		return SUBMAP_ITERATOR_PRIORITY_MIN;
+		return DERIVEDMAP_ITERATOR_PRIORITY_MIN;
 	}
 
 
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getTable()
 	 */
-	@Override
 	public String getTable(){
 		return table;
 	}
@@ -235,7 +253,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#setColumnVisibility(byte[])
 	 */
-	@Override
 	public AccumuloSortedMap<K, V> setColumnVisibility(byte[] cv){
 		colvis = cv;
 		return this;
@@ -284,7 +301,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#sizeAsLong()
 	 */
-	@Override
 	public long sizeAsLong(){
 		return MapAggregates.count(this);
 	}
@@ -302,7 +318,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 
 
 
-	@Override
 	public boolean isEmpty() {
 		return size() == 0;
 	}
@@ -328,7 +343,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return new Authorizations(colvis);
 	}
 
-	@Override
 	public boolean containsKey(Object key) {
 		return get(key) != null;
 	}
@@ -337,7 +351,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * runs through the entire table locally. slow.
 	 * TODO maybe add iterator for this
 	 */
-	@Override
 	public boolean containsValue(Object value) {
 		Scanner	s;
 		try {
@@ -378,7 +391,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return null;
 	}
 
-	@Override
+
 	public V get(Object key) {
 		Entry<Key, Value> e = getEntry(key);
 		if(e == null)
@@ -386,7 +399,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		return deserializeValue(e.getValue().get());		
 	}
 
-	@Override
+
 	public long getTimestamp(K key){
 		Entry<Key, Value> e = getEntry(key);
 		if(e == null)
@@ -438,7 +451,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			}
 		}
 	}
-	@Override
+
 	public V put(K key, V value) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
@@ -453,7 +466,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
-	@Override
+
 	public V remove(Object key) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
@@ -483,7 +496,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	 * it should be faster than repeated calls to put(), which flushes BatchWriter after each entry
 	 */
 
-	@Override
+
 	public void putAll(Map<? extends K, ? extends V> m) {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
@@ -549,7 +562,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#delete()
 	 */
-	@Override
+
 	public void delete() throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
@@ -561,7 +574,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#clear()
 	 */
-	@Override
+
 	public void clear() {
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
@@ -575,7 +588,7 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
-	@Override
+
 	public Comparator<? super K> comparator() {
 		return new Comparator(){
 			@Override
@@ -599,6 +612,12 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			return s;
 		}
 		@Override
+		public Scanner getMultiScanner() throws TableNotFoundException {
+			Scanner s = parent.getMultiScanner();
+			s.setRange(range);
+			return s;
+		}
+		@Override
 		public V get(Object key) {
 			if(!range.contains(getKey(key)))
 				return null;
@@ -606,15 +625,22 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
+
 	/**
-	 * always returns a AccumuloSortedMapBase
-	 * null accepted as no limit. returned map is READ ONLY
+	 * the end include booleans DONT WORK currently because of bug in Accumulo:
+	 * 
+	 * "There is a Java proxy bug in the scanner. If you create a BatchScanner, every range assigned to it has startInclusive=true, endInclusive=false."
+	 * from https://github.com/accumulo/pyaccumulo/issues/14
+	 * 
+	 * keeping this method protected until the bug is fixed
+	 * 
 	 * @param fromKey
+	 * @param inc1
 	 * @param toKey
+	 * @param inc2
 	 * @return
 	 */
-	@Override
-	protected AccumuloSortedMapBase<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
+	protected AccumuloSortedMap<K, V> subMap(final K fromKey,final boolean inc1,final K toKey,final boolean inc2) {
 		final AccumuloSortedMap<K, V> parent = this;
 		Scanner s;
 		try {
@@ -642,12 +668,10 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 
 	}
 
-	@Override
 	public K firstKey() {
 		return entrySet().iterator().next().getKey();
 	}
 
-	@Override
 	/**
 	 * is there no way in accumulo to efficiently scan to last key??
 	 * 
@@ -793,7 +817,6 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 					return -1;
 				}
 				return (int) sz;
-
 			}
 
 			@Override
@@ -868,22 +891,58 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		};
 	}
 
+
+	/**
+	 * getScanner() always sees 1 value per key. 
+	 * getMultiScanner() sees multiple when setMultiMap(n) has been called with n > 1 
+	 */
 	protected Scanner getScanner() throws TableNotFoundException{
+		Scanner s = getConnector().createScanner(getTable(), getAuthorizations());
+		EnumSet<IteratorScope> all = EnumSet.allOf(IteratorScope.class);
+		int prior = ITERATOR_PRIORITY_VERSIONING;
+		IteratorSetting is = new IteratorSetting(prior,ITERATOR_NAME_VERSIONING+prior,VersioningIterator.class);
+		VersioningIterator.setMaxVersions(is, 1);
+		s.addScanIterator(is);
+		return s;
+	}
+
+	protected Scanner getMultiScanner() throws TableNotFoundException{
 		Scanner s = getConnector().createScanner(getTable(), getAuthorizations());
 		return s;
 	}
 
 
-	@Override
-	protected AccumuloSortedMapBase<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde){
+	protected IteratorStackedSubmap<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde, boolean isRowAggregate){
 		Map<String,String> itcfg = new HashMap<String,String>();
 		if(iterator_options != null)
 			itcfg.putAll(iterator_options);
-		return new IteratorStackedSubmap<K,V>(this,iterator,itcfg,derivedMapValueSerde);		
+		IteratorStackedSubmap<K,?> iss =  new IteratorStackedSubmap<K,V>(this,iterator,itcfg,derivedMapValueSerde);
+		iss.setRowAggregate(isRowAggregate);
+		return iss;
 	}
 
-	@Override
-	public AccumuloSortedMapBase<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long min_timestamp, final long max_timestamp){
+	/**
+	 * Create a derived map by stacking an iterator and options specified by a DerivedMapper.
+	 * 
+	 * wraps derivedMapFromIterator and add iterator options OPT_KEY_SERDE, OPT_VALUE_INPUT_SERDE, OPT_VALUE_OUTPUT_SERDE
+	 * that specify the classname of the key and value serdes used by this map
+
+	 * if mapper.getDerivedMapValueSerde() == null, OPT_VALUE_OUTPUT_SERDE will be set to same value as OPT_VALUE_INPUT_SERDE
+   and derivedMapFromIterator will be passed the current map's value serde
+	 * @param mapper
+	 * @return
+	 */
+	public AccumuloSortedMap<K,?> deriveMap(DerivedMapper mapper){
+		return deriveMap(mapper,false);
+	}
+	public AccumuloSortedMap<K,?> deriveMap(DerivedMapper mapper, boolean isRowAggregate){
+		SerDe output_value_serde = mapper.getDerivedMapValueSerde();
+		Map<String,String> opts = configureSerdes(mapper.getIteratorOptions(),output_value_serde);
+		return derivedMapFromIterator(mapper.getIterator(),opts, output_value_serde == null ? getValueSerde():output_value_serde,isRowAggregate);
+	}
+
+
+	public AccumuloSortedMap<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long min_timestamp, final long max_timestamp){
 		Map<String,String> cfg = new HashMap<String,String>();
 		cfg.put(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
 		cfg.put(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
@@ -896,8 +955,8 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 	}
 	protected V deserializeValue(byte[] b){
 		V o = (V) getValueSerde().deserialize(b);
-		if(o != null && o instanceof Link){
-			((Link) o).setConnector(getConnector());
+		if(o != null && o instanceof ForeignKey){
+			((ForeignKey) o).setConnector(getConnector());
 		}
 		return o;
 	}
@@ -1085,12 +1144,16 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 		}
 	}
 
-	@Override
-	public Link<V> makeLink(Object key) {
-		return new Link<V>(conn,null,getTable(),key);
+	/**
+	 * make a ForiegnKey to a key in this table
+	 * @param key
+	 * @return
+	 */
+	public ForeignKey<V> makeForeignKey(Object key) {
+		return new ForeignKey<V>(conn,null,getTable(),key);
 	}
-	@Override
-	public AccumuloSortedMapBase<K, V> regexFilter(String keyRegex,
+
+	public AccumuloSortedMap<K, V> regexFilter(String keyRegex,
 			String valueRegex) {
 		Map<String,String> cfg = new HashMap<String,String>();
 		if(keyRegex != null)
@@ -1099,6 +1162,196 @@ public class AccumuloSortedMap<K,V> extends  AccumuloSortedMapBase<K, V>{
 			cfg.put(RegexFilter.OPT_VALUEREGEX, valueRegex);
 		configureSerdes(cfg,getValueSerde());
 		return new IteratorStackedSubmap<K,V>(this,RegexFilter.class,cfg,getValueSerde());
+	}
+
+	public void dump(PrintStream ps,int max_values_per_key){
+		K prev=null;
+		int valuesShown=0;
+		for(Iterator<Entry<K,V>> it =  multiEntryIterator();it.hasNext();){
+			Entry<K,V> e = it.next();
+			K k = e.getKey();
+			if(prev == null || !k.equals(prev) ){
+				valuesShown=0;
+			}
+			if(max_values_per_key < 0 || valuesShown++ < max_values_per_key){
+				ps.println(formatDumpLine(e));				
+			}
+		}
+		ps.flush();
+	}
+	public AccumuloSortedMap<K, V> setMultiMap(int max_values_per_key) throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+		if(isReadOnly())
+			throw new UnsupportedOperationException("must set multiMap on base map, not derived map");
+
+		EnumSet<IteratorScope> all = EnumSet.allOf(IteratorScope.class);
+		this.max_values_per_key = max_values_per_key;
+		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
+			getConnector().tableOperations().removeIterator(getTable(), ITERATOR_NAME_VERSIONING, all);
+			log.info("Removed versioning iterator for table "+getTable());
+		}
+
+		if(max_values_per_key > 0){
+			IteratorSetting is = new IteratorSetting(ITERATOR_PRIORITY_VERSIONING,ITERATOR_NAME_VERSIONING,VersioningIterator.class);
+			VersioningIterator.setMaxVersions(is, max_values_per_key);
+			log.info("attaching versioning iterator for table "+getTable()+ " with max version = "+max_values_per_key);
+			getConnector().tableOperations().attachIterator(getTable(), is, all);
+		}
+		return this;
+	}
+	/**
+	 * returns all values associated with key. Should be <=n values when setMultiMap(n) is enabled
+	 * @param key
+	 * @return
+	 */
+	public Iterator<V> getAll(Object key){
+		Scanner	s;
+		try {
+			// get scanner without versioning iterator
+			s = getMultiScanner();
+			Key k1 = getKey(key);
+			k1.setTimestamp(0);
+			Key k2 = getKey(key);
+			k2.setTimestamp(Long.MAX_VALUE);
+			s.setRange(new Range(k2,k1));
+			Iterator<Entry<Key, Value>> it = s.iterator();
+			return new ValueSetIterator(new EntrySetIterator(it));
+		} catch (TableNotFoundException e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
+
+	public Iterator<Entry<K,V>> multiEntryIterator(){
+		Scanner	s;
+		try {
+			// get scanner without versioning iterator
+			s = getMultiScanner();
+			Iterator<Entry<Key, Value>> it = s.iterator();
+			return new EntrySetIterator(it);
+		} catch (TableNotFoundException e) {
+			log.error(e.getMessage());
+			throw new RuntimeException(e);
+		}
+	}
+
+	public AccumuloSortedMap<K,?> rowStats(){
+		return deriveMap(new RowStatsMapper(),true);
+	}
+	/**
+	 * a full map checksum to ensure data integrity
+	 * computed on tablet servers using MapChecksumAggregateIterator
+	 * 
+	 * @return a long whose top int is the sum of keys' hashCode() and 
+	 *  whose bottom int is the sum of values' hashCode(). Note that this
+	 *  checksum runs on the deserialized java objects and should therefore be
+	 *  independent of SerDe
+	 */	
+	public long checksum(){
+		return MapAggregates.checksum(this);
+	}
+	public final int checksumKeys(){
+		return (int) (checksum() >>> 32);
+	}
+	public final int checksumValues(){
+		return (int) checksum();
+	}	
+	protected Map<String,String> configureSerdes(Map<String,String> opts,SerDe output_value_serde){
+		if(opts == null)
+			opts = new HashMap<String,String>();
+		opts.put(OPT_KEY_SERDE, getKeySerde().getClass().getName());
+		opts.put(OPT_VALUE_INPUT_SERDE, getValueSerde().getClass().getName());
+		if(output_value_serde != null)
+			opts.put(OPT_VALUE_OUTPUT_SERDE, output_value_serde.getClass().getName());
+		else
+			opts.put(OPT_VALUE_OUTPUT_SERDE, getValueSerde().getClass().getName());
+		return opts;
+	}
+	public final AccumuloSortedMap<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
+		return sample(from_fraction,to_fraction,randSeed,-1,-1);		
+	}
+	public final AccumuloSortedMap<K, V> sample(final double fraction){
+		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1, -1);
+	}
+
+
+	public final AccumuloSortedMap<K, V> timeFilter(long min_timestamp, long max_timestamp){
+		return sample(0,1,"",min_timestamp,max_timestamp);
+	}
+
+
+
+	/**
+	 * null accepted as no limit. returned map is READ ONLY
+	 * @param fromKey
+	 * @param toKey
+	 * @return
+	 */
+
+	@Override
+	public final AccumuloSortedMap<K, V> subMap(K fromKey, K toKey) {
+		return subMap(fromKey,true,toKey,false);
+	}
+
+	@Override
+	public final AccumuloSortedMap<K, V> headMap(K toKey) {
+		return subMap(null,true,toKey,false);
+	}
+
+	@Override
+	public final AccumuloSortedMap<K, V> tailMap(K fromKey) {
+		return subMap(fromKey,true,null,true);
+	}
+
+
+
+	protected String formatDumpLine(Map.Entry<K,V> e){
+		return "k = "+e.getKey()+" : v = "+e.getValue();
+	}
+
+	/**
+	 * dumps key/values to stream. for debugging
+	 * @param ps
+	 */
+	public void dump(PrintStream ps){
+		for(Map.Entry<K,V> e : entrySet()){
+			ps.println(formatDumpLine(e));
+		}
+		ps.flush();
+	}
+	/**
+	 * @return a local in memory TreeMap copy containing this ENTIRE map 
+	 */
+	public final TreeMap<K,V> localCopy(){
+		TreeMap<K,V> local = new TreeMap<K,V>();
+		local.putAll(this);
+		return local;
+	}
+
+	public Object getResolvedLink(K key) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
+		return resolve(get(key));
+	}
+
+
+	public final AccumuloSortedMap<K, V>  regexValueFilter(String valueRegex){
+		return regexFilter(null,valueRegex);
+	}
+	public final AccumuloSortedMap<K, V>  regexKeyFilter(String keyRegex){
+		return regexFilter(keyRegex,null);
+	}
+
+	public final V waitFor(K key, long maxms) throws InterruptedException{
+		return waitFor(key,maxms,DEFAULT_WAIT_MS);
+	}
+	public final V waitFor(K key, long maxms, long incms) throws InterruptedException{
+		long waited =0;
+		V val=null;
+		while((val=get(key)) == null && waited <= maxms){
+			long waitTime = incms <= maxms - waited ? incms : maxms - waited;
+			log.debug("waitFor wating "+waitTime+"ms");
+			Thread.sleep(waitTime);
+			waited += waitTime;
+		}
+		return val;
 	}
 
 }

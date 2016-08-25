@@ -26,8 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
-import com.isentropy.accumulo.collections.Link;
+import com.isentropy.accumulo.collections.ForeignKey;
 import com.isentropy.accumulo.collections.io.SerDe;
 
 /**
@@ -80,8 +79,8 @@ public class FactoryAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
 	
 	
 	@Override
-	public Link makeLink(Object key) {
-		return new Link(getConnector(),factoryName,getTableAlias(),key);
+	public ForeignKey makeForeignKey(Object key) {
+		return new ForeignKey(getConnector(),factoryName,getTableAlias(),key);
 	}
 
 }

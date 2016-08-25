@@ -30,7 +30,12 @@ import org.apache.accumulo.core.client.Connector;
 
 import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 
-public class Link<V> implements Serializable {
+/**
+ * This class represents a map value that points to a key (ie row) in another map.
+ *
+ * @param <V>
+ */
+public class ForeignKey<V> implements Serializable {
 
 	private String factoryName=null,tableName=null;
 	private Object key=null;
@@ -38,7 +43,7 @@ public class Link<V> implements Serializable {
 	private transient AccumuloSortedMapFactory fact;
 	private transient AccumuloSortedMap map;
 
-	public Link(Connector c, String factory_name, String table_name,Object key) {
+	public ForeignKey(Connector c, String factory_name, String table_name,Object key) {
 		conn=c;
 		factoryName=factory_name;
 		tableName=table_name;
@@ -70,9 +75,9 @@ public class Link<V> implements Serializable {
 		return conn;
 	}
 	public static final Object resolve(Object link) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
-		if(link == null || !(link instanceof Link))
+		if(link == null || !(link instanceof ForeignKey))
 			return null;
-		return ((Link) link).resolve();
+		return ((ForeignKey) link).resolve();
 	}
 
 }

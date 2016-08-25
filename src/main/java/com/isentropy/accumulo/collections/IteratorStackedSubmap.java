@@ -38,6 +38,7 @@ import com.isentropy.accumulo.iterators.SamplingFilter;
 public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
 	private Class<? extends SortedKeyValueIterator<Key, Value>> iterator;
 	private Map<String,String> iterator_options;
+	private boolean isAggregate = false;
 	
 	public IteratorStackedSubmap(AccumuloSortedMap<K,?> parent, Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde) {
 		super(parent,derivedMapValueSerde);
@@ -49,16 +50,38 @@ public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
 	protected int nextIteratorPriority(){
 		return parent.nextIteratorPriority()+1;
 	}
-	protected Scanner getScannerFromParent() throws TableNotFoundException{
-		return parent.getScanner();
-	}
+	
 	@Override
 	public Scanner getScanner() throws TableNotFoundException{
-		Scanner s = getScannerFromParent();
+		if(isAggregate)
+			return getMultiScanner();
+		Scanner s = parent.getScanner();
 		IteratorSetting cfg = new IteratorSetting(parent.nextIteratorPriority(), iterator);
 		cfg.setName(iterator.getSimpleName()+parent.nextIteratorPriority());
 		cfg.addOptions(iterator_options);
 		s.addScanIterator(cfg);
 		return s;
 	}
+	@Override
+	public Scanner getMultiScanner() throws TableNotFoundException{
+		Scanner s = parent.getMultiScanner();
+		IteratorSetting cfg = new IteratorSetting(parent.nextIteratorPriority(), iterator);
+		cfg.setName(iterator.getSimpleName()+parent.nextIteratorPriority());
+		cfg.addOptions(iterator_options);
+		s.addScanIterator(cfg);
+		return s;
+	}
+	/**
+	 * if true, getScanner() will return getMultiScanner().
+	 * This is useful when you want to create a derived map that computes a single aggregate object from
+	 * the multiple values of its parent map. See setMultiMap(n)
+	 * @return
+	 */
+	public boolean isRowAggregate() {
+		return isAggregate;
+	}
+
+	public void setRowAggregate(boolean isAggregate) {
+		this.isAggregate = isAggregate;
+	}	
 }

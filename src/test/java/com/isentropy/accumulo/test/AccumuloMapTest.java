@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 
@@ -49,11 +50,9 @@ import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
-import com.isentropy.accumulo.collections.AccumuloSortedMultiMap;
 import com.isentropy.accumulo.collections.AccumuloSortedProperties;
-import com.isentropy.accumulo.collections.JoinRow;
-import com.isentropy.accumulo.collections.Link;
+import com.isentropy.accumulo.collections.EmptyAccumuloSortedMap;
+import com.isentropy.accumulo.collections.ForeignKey;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
@@ -119,7 +118,7 @@ extends TestCase
 		// MAP FEATURES
 		System.out.println("get(100) = "+asm.get(100));
 		// SORTED MAP FEATURES
-		AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20).subMap(11, 30);
+		AccumuloSortedMap submap = asm.subMap(10, 20).subMap(11, 30);
 		submap.dump(System.out);
 
 		// should be null
@@ -158,7 +157,7 @@ extends TestCase
 
 	}
 
-	private void printCollections(AccumuloSortedMapBase map){
+	private void printCollections(AccumuloSortedMap map){
 		Iterator it = map.entrySet().iterator();
 		for(;it.hasNext();){
 			Entry e = (Entry) it.next();
@@ -216,8 +215,9 @@ extends TestCase
 		
 		//asm.delete();
 	}
-	public void testMultiMap(Connector c) throws AccumuloException, AccumuloSecurityException{
-		AccumuloSortedMultiMap mm = new AccumuloSortedMultiMap(c,"mm");
+	public void testMultiMap(Connector c, int maxValues) throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
+		AccumuloSortedMap mm = new AccumuloSortedMap(c,"mm");
+		mm.setMultiMap(maxValues);
 		mm.put(1, 2);
 		mm.put(1, 3);
 		mm.put(1, 4);
@@ -227,8 +227,6 @@ extends TestCase
 		assertTrue(row1.getMax()==4.0);
 		// size should reflect # keys
 		assertTrue(mm.size()==2);
-		
-		
 	}
 	public void testLinks(Connector c) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		
@@ -237,9 +235,26 @@ extends TestCase
 		AccumuloSortedMap m2 = fact.makeMap("m2");
 		
 		m1.put("a", "b");
-		Link l = m1.makeLink("a");
+		ForeignKey l = m1.makeForeignKey("a");
 		m2.put("aa", l);
 		assertTrue(m2.getResolvedLink("aa").equals("b"));
+	}
+	public void testEmptyMap(){
+		EmptyAccumuloSortedMap em = new EmptyAccumuloSortedMap();
+		assertTrue(em.size() == 0);
+		assertTrue(em.get(123) == null);
+		
+		try{
+			em.firstKey();
+			fail();
+		}
+		catch(NoSuchElementException e){}
+
+		try{
+			em.lastKey();
+			fail();
+		}
+		catch(NoSuchElementException e){}
 	}
 
 	public void testApp()
@@ -248,7 +263,9 @@ extends TestCase
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
 			testLinks(c);
 			testMapFactory(c);
-			testMultiMap(c);
+			testMultiMap(c,9999);
+			testMultiMap(c,-1);
+			testEmptyMap();
 /*
     		//setup for MiniAccumulo
 			File tempDirectory = new File("/tmp/asmTest");
@@ -399,7 +416,7 @@ extends TestCase
 			//asm.subMap(0, 5).dump(System.out);
 
 
-			AccumuloSortedMapBase submap = (AccumuloSortedMapBase) asm.subMap(10, 20);
+			AccumuloSortedMap submap = asm.subMap(10, 20);
 			err = false;
 			try{
 				submap.put(1, -1);
@@ -424,7 +441,7 @@ extends TestCase
 			printCollections(submap.sample(.5));
 
 
-			AccumuloSortedMapBase sample = asm.sample(.5);
+			AccumuloSortedMap sample = asm.sample(.5);
 			System.out.println("sample(.5).sample(.1)");
 			printCollections(sample.sample(.1));
 

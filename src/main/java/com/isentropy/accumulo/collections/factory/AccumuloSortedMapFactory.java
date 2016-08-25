@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.io.Utf8Serde;
@@ -53,8 +52,8 @@ public class AccumuloSortedMapFactory<K,V> {
 	// default Properties are written as table DEFAULT_SETTING_METATABLENAME
 	public static final String DEFAULT_SETTING_METATABLENAME="!default!";
 
-	public static final String MAP_PROPERTY_KEY_SERDE=AccumuloSortedMapBase.OPT_KEY_SERDE;
-	public static final String MAP_PROPERTY_VALUE_SERDE=AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
+	public static final String MAP_PROPERTY_KEY_SERDE=AccumuloSortedMap.OPT_KEY_SERDE;
+	public static final String MAP_PROPERTY_VALUE_SERDE=AccumuloSortedMap.OPT_VALUE_INPUT_SERDE;
 	public static final String MAP_PROPERTY_TABLE_NAME="table_name";
 	public static final int RANDOM_TABLE_NAME_LENGTH = 20;
 

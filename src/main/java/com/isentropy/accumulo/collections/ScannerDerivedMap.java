@@ -53,6 +53,8 @@ public abstract class ScannerDerivedMap<K,V> extends AccumuloSortedMap<K,V>{
 	}
 	
 	public abstract Scanner getScanner() throws TableNotFoundException;
+	public abstract Scanner getMultiScanner() throws TableNotFoundException;
+	
 	
 	@Override
 	public SerDe getKeySerde() {

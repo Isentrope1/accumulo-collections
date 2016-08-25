@@ -39,11 +39,10 @@ import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.user.TransformingIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
-import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
-import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_OUTPUT_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMap.OPT_KEY_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMap.OPT_VALUE_INPUT_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMap.OPT_VALUE_OUTPUT_SERDE;
 
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.io.SerDe;
 
 public abstract class DeserializedTransformingIterator extends TransformingIterator implements OptionDescriber{

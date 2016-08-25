@@ -33,9 +33,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
-import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_KEY_SERDE;
-import static com.isentropy.accumulo.collections.AccumuloSortedMapBase.OPT_VALUE_INPUT_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMap.OPT_KEY_SERDE;
+import static com.isentropy.accumulo.collections.AccumuloSortedMap.OPT_VALUE_INPUT_SERDE;
 
 import com.isentropy.accumulo.collections.io.SerDe;
 /**
