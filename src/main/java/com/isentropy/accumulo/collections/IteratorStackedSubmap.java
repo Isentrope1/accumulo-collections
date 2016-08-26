@@ -73,15 +73,15 @@ public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
 	}
 	/**
 	 * if true, getScanner() will return getMultiScanner().
-	 * This is useful when you want to create a derived map that computes a single aggregate object from
-	 * the multiple values of its parent map. See setMultiMap(n)
+	 * This is useful when you want to create a derived map that computes a aggregate objects from
+	 * multiple values of its parent map. See setMultiMap(n)
 	 * @return
 	 */
-	public boolean isRowAggregate() {
+	public boolean isAggregate() {
 		return isAggregate;
 	}
 
-	public void setRowAggregate(boolean isAggregate) {
+	public void setAggregate(boolean isAggregate) {
 		this.isAggregate = isAggregate;
 	}	
 }

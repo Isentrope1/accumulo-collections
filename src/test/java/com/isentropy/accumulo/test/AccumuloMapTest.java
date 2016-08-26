@@ -53,6 +53,7 @@ import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedProperties;
 import com.isentropy.accumulo.collections.EmptyAccumuloSortedMap;
 import com.isentropy.accumulo.collections.ForeignKey;
+import static com.isentropy.accumulo.collections.ForeignKey.resolve;
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
@@ -60,6 +61,7 @@ import com.isentropy.accumulo.collections.io.LongAsUtf8Serde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.util.TsvInputStreamIterator;
+import com.isentropy.accumulo.util.Util;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -216,7 +218,7 @@ extends TestCase
 		//asm.delete();
 	}
 	public void testMultiMap(Connector c, int maxValues) throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
-		AccumuloSortedMap mm = new AccumuloSortedMap(c,"mm");
+		AccumuloSortedMap mm = new AccumuloSortedMap(c,Util.randomHexString(10));
 		mm.setMultiMap(maxValues);
 		mm.put(1, 2);
 		mm.put(1, 3);
@@ -227,6 +229,9 @@ extends TestCase
 		assertTrue(row1.getMax()==4.0);
 		// size should reflect # keys
 		assertTrue(mm.size()==2);
+		// count multiple values
+		assertTrue(mm.sizeAsLong(true) == 4);
+		
 	}
 	public void testLinks(Connector c) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		
@@ -237,7 +242,7 @@ extends TestCase
 		m1.put("a", "b");
 		ForeignKey l = m1.makeForeignKey("a");
 		m2.put("aa", l);
-		assertTrue(m2.getResolvedLink("aa").equals("b"));
+		assertTrue(resolve(m2.get("aa")).equals("b"));
 	}
 	public void testEmptyMap(){
 		EmptyAccumuloSortedMap em = new EmptyAccumuloSortedMap();

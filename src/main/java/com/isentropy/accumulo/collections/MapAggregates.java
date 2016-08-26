@@ -63,7 +63,7 @@ public class MapAggregates {
 	 * @param map
 	 * @return
 	 */
-	public static StatisticalSummary valueStats(AccumuloSortedMap map){
+	public static StatisticalSummary valueStats(AccumuloSortedMap map,boolean includeMultipleValues){
 		AccumuloSortedMap tabletSummaries = map.deriveMap(new StatsDerivedMapper());
 		List<SummaryStatistics> perTabletStats = new ArrayList<SummaryStatistics>();
 		Set<Map.Entry> s =tabletSummaries.entrySet();
@@ -74,9 +74,12 @@ public class MapAggregates {
 		StatisticalSummaryValues fullstats = AggregateSummaryStatistics.aggregate(perTabletStats);
 		return fullstats;
 	}
-
-	public static long count(AccumuloSortedMap map){
-		AccumuloSortedMap tabletCounts = map.deriveMap(new CountsDerivedMapper());
+	public static StatisticalSummary valueStats(AccumuloSortedMap map){
+		return valueStats(map,false);
+	}
+	
+	public static long count(AccumuloSortedMap map,boolean includeMultipleValues){
+		AccumuloSortedMap tabletCounts = map.deriveMap(new CountsDerivedMapper(),includeMultipleValues);
 		Set<Map.Entry> s = tabletCounts.entrySet();
 		long sum=0;
 		for(Map.Entry e : s){
@@ -84,8 +87,12 @@ public class MapAggregates {
 		}
 		return sum;
 	}
-	public static long checksum(AccumuloSortedMap map){
-		AccumuloSortedMap tabletChecksums = map.deriveMap(new ChecksumMapper());
+	public static long count(AccumuloSortedMap map){
+		return count(map,false);
+	}
+
+	public static long checksum(AccumuloSortedMap map,boolean includeMultipleValues){
+		AccumuloSortedMap tabletChecksums = map.deriveMap(new ChecksumMapper(), includeMultipleValues);
 		Set<Map.Entry> s = tabletChecksums.entrySet();
 		long checksum=0;
 		for(Map.Entry e : s){
@@ -93,5 +100,10 @@ public class MapAggregates {
 		}
 		return checksum;
 	}
+	
+	public static long checksum(AccumuloSortedMap map){
+		return checksum(map, false);
+	}
+
 
 }

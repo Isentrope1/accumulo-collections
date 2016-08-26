@@ -74,6 +74,16 @@ public class ForeignKey<V> implements Serializable {
 	public Connector getConnector(){
 		return conn;
 	}
+	/**
+	 * calls link.resolve() if link is a ForeignKey, otherwise null
+	 * @param link
+	 * @return
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws ClassNotFoundException
+	 * @throws AccumuloException
+	 * @throws AccumuloSecurityException
+	 */
 	public static final Object resolve(Object link) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
 		if(link == null || !(link instanceof ForeignKey))
 			return null;
