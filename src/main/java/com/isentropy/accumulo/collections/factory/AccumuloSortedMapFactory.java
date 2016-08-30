@@ -46,7 +46,7 @@ import com.isentropy.accumulo.util.Util;
  * @param <K>
  * @param <V>
  */
-public class AccumuloSortedMapFactory<K,V> {
+public class AccumuloSortedMapFactory {
 	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMapFactory.class);
 
 	// default Properties are written as table DEFAULT_SETTING_METATABLENAME
@@ -84,10 +84,10 @@ public class AccumuloSortedMapFactory<K,V> {
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
 	 */
-	public FactoryAccumuloSortedMap<K,V> makeMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+	public FactoryAccumuloSortedMap makeMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		return makeMap(tableAlias,true);
 	}
-	public FactoryAccumuloSortedMap<K,V> makeMap(String tableAlias, boolean create) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+	public FactoryAccumuloSortedMap makeMap(String tableAlias, boolean create) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		Properties props = tableAliasToProperties.get(DEFAULT_SETTING_METATABLENAME);
 		if(props == null){
 			props = new Properties();
@@ -102,17 +102,17 @@ public class AccumuloSortedMapFactory<K,V> {
 			tableAliasToProperties.put(tableAlias, props);
 		}
 		
-		FactoryAccumuloSortedMap<K,V> out = new FactoryAccumuloSortedMap<K,V>(conn,tableName,create);
+		FactoryAccumuloSortedMap out = new FactoryAccumuloSortedMap(conn,tableName,create);
 		configureMap(out,props,tableAlias);
 		return out;
 	}
-	public FactoryAccumuloSortedMap<K,V> makeReadOnlyMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		FactoryAccumuloSortedMap<K,V> map = makeMap(tableAlias);
+	public FactoryAccumuloSortedMap makeReadOnlyMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		FactoryAccumuloSortedMap map = makeMap(tableAlias);
 		map.setReadOnly(true);
 		return map;
 	}
 	
-	protected void configureMap(FactoryAccumuloSortedMap<K,V> map, Properties props,String tableAlias) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
+	protected void configureMap(FactoryAccumuloSortedMap map, Properties props,String tableAlias) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
 		String v;
 		if((v = props.getProperty(MAP_PROPERTY_KEY_SERDE)) != null){
 			map.setKeySerde((SerDe) Class.forName(v).newInstance());

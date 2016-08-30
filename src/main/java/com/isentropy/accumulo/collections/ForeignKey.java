@@ -49,11 +49,15 @@ public class ForeignKey<V> implements Serializable {
 		tableName=table_name;
 		this.key = key;
 	}
+	public V resolve(Connector conn) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
+		setConnector(conn);
+		return resolve();
+	}
 	public V resolve() throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		if(conn == null)
-			return null;
+			throw new InstantiationException("ForeignKey: Must set connection before resolve()");
 		if(tableName == null)
-			return null;
+			throw new InstantiationException("ForeignKey: table name can't be null");
 		if(key == null)
 			return null;
 		if(map == null){

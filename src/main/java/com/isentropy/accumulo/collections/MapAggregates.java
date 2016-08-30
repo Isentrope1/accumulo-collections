@@ -64,7 +64,7 @@ public class MapAggregates {
 	 * @return
 	 */
 	public static StatisticalSummary valueStats(AccumuloSortedMap map,boolean includeMultipleValues){
-		AccumuloSortedMap tabletSummaries = map.deriveMap(new StatsDerivedMapper());
+		AccumuloSortedMap tabletSummaries = map.deriveMap(new StatsDerivedMapper(),includeMultipleValues);
 		List<SummaryStatistics> perTabletStats = new ArrayList<SummaryStatistics>();
 		Set<Map.Entry> s =tabletSummaries.entrySet();
 		for(Map.Entry e : s){

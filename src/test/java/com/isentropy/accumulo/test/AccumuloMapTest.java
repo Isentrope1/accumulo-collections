@@ -218,31 +218,44 @@ extends TestCase
 		//asm.delete();
 	}
 	public void testMultiMap(Connector c, int maxValues) throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
-		AccumuloSortedMap mm = new AccumuloSortedMap(c,Util.randomHexString(10));
+		AccumuloSortedMap<Number,Number> mm = new AccumuloSortedMap(c,Util.randomHexString(10));
 		mm.setMultiMap(maxValues);
 		mm.put(1, 2);
 		mm.put(1, 3);
 		mm.put(1, 4);
 		mm.put(2, 22);
-		SummaryStatistics row1=(SummaryStatistics) mm.rowStats().get(1);
+		StatisticalSummary row1= mm.rowStats().get(1);
 		assertTrue(row1.getMean()==3.0);
 		assertTrue(row1.getMax()==4.0);
 		// size should reflect # keys
 		assertTrue(mm.size()==2);
 		// count multiple values
 		assertTrue(mm.sizeAsLong(true) == 4);
+		//4 +22
+		assertTrue(mm.valueStats().getSum() == 26);
+		//2+3+4+22
+		StatisticalSummary stats  = mm.valueStats(true);
+		double sum = stats.getSum();
+		assertTrue(mm.valueStats(true).getSum() == 31);
+		
 		
 	}
-	public void testLinks(Connector c) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+	public void testLinks(Connector conn) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		
-		AccumuloSortedMapFactory fact = new AccumuloSortedMapFactory(c,"factory_table2");
-		AccumuloSortedMap m1 = fact.makeMap("m1");
-		AccumuloSortedMap m2 = fact.makeMap("m2");
+	    AccumuloSortedMapFactory fact = new AccumuloSortedMapFactory(conn,"factory_table_table");
+	    AccumuloSortedMap m1 = fact.makeMap("m1");
+	    AccumuloSortedMap<String,ForeignKey> m2 = fact.makeMap("m2");	
+	    m1.put("key1", "value1");
+	    ForeignKey fk_to_key1 = m1.makeForeignKey("key1");
+	    m2.put("key2", fk_to_key1);
+	    // both print "value1"
+	    //System.out.println(fk_to_key1.resolve(conn));
+	    //System.out.println(m2.get("key2").resolve(conn));
+	    assertTrue(m2.get("key2").resolve(conn).equals("value1"));
+	    assertTrue(fk_to_key1.resolve(conn).equals("value1"));
+	    
 		
-		m1.put("a", "b");
-		ForeignKey l = m1.makeForeignKey("a");
-		m2.put("aa", l);
-		assertTrue(resolve(m2.get("aa")).equals("b"));
+		
 	}
 	public void testEmptyMap(){
 		EmptyAccumuloSortedMap em = new EmptyAccumuloSortedMap();

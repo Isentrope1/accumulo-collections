@@ -64,6 +64,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
+import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1041,8 +1042,25 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			}
 		}
 	}
-	public AccumuloSortedMap<K,?> rowStats(){
-		return deriveMap(new RowStatsMapper(),true);
+	/**
+	 * resolves a ForeignKey using the connector of this map
+	 * @param fk
+	 * @return
+	 * @throws AccumuloSecurityException 
+	 * @throws AccumuloException 
+	 * @throws ClassNotFoundException 
+	 * @throws IllegalAccessException 
+	 * @throws InstantiationException 
+	 */
+	public Object resolve(ForeignKey fk) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
+		if(fk == null || conn == null)
+			return null;
+		fk.setConnector(conn);
+		return fk.resolve();
+	}
+	
+	public AccumuloSortedMap<K,StatisticalSummary> rowStats(){
+		return (AccumuloSortedMap<K,StatisticalSummary>) deriveMap(new RowStatsMapper(),true);
 	}
 	public final AccumuloSortedMap<K, V> sample(final double fraction){
 		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1, -1);
@@ -1194,6 +1212,8 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	/**
 	 * included for compatibility with java Map interface.
 	 * sizeAsLong() is preferred, since the map size may exceed Integer.MAX_VALUE
+	 * 
+	 * returns -1 if true size is greater than Integer.MAX_VALUE
 	 */
 	@Override
 	public int size(){
@@ -1278,6 +1298,20 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	public final AccumuloSortedMap<K, V> timeFilter(long min_timestamp, long max_timestamp){
 		return sample(0,1,"",min_timestamp,max_timestamp);
 	}
+	
+	/**
+	 * computes a StatisticalSummary of all values that are of java Numbers
+	 * @param includeMultipleValues
+	 * @return
+	 */
+	public StatisticalSummary valueStats(boolean includeMultipleValues){
+		return MapAggregates.valueStats(this, includeMultipleValues);
+	}
+
+	public StatisticalSummary valueStats(){
+		return valueStats(false);
+	}
+	
 	@Override
 	public Collection<V> values() {
 		final AccumuloSortedMap<K,V> parent = this;

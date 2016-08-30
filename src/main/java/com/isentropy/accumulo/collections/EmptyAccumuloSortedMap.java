@@ -51,4 +51,12 @@ public class EmptyAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
 	protected Scanner getMultiScanner(){
 		return new EmptyScanner();
 	}
+	@Override
+	public Object resolve(ForeignKey fk) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
+		throw new UnsupportedOperationException("cannot call resolve(fk) on EmptyAccumuloSortedMap since it has no connector");
+	}
+	@Override
+	public boolean isReadOnly() {
+		return true;
+	}
 }
