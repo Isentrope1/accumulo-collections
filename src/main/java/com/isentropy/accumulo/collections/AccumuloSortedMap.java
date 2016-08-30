@@ -1062,15 +1062,19 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	public AccumuloSortedMap<K,StatisticalSummary> rowStats(){
 		return (AccumuloSortedMap<K,StatisticalSummary>) deriveMap(new RowStatsMapper(),true);
 	}
+	public final AccumuloSortedMap<K, V> sample(Sampler s){
+		return sample(s.samplingSeed,s.fromFractionalHash,s.toFractionalHash,s.fromTs,s.toTs);
+	}
+	
 	public final AccumuloSortedMap<K, V> sample(final double fraction){
-		return sample(0,fraction,Util.randomHexString(DEFAULT_RANDSEED_LENGTH),-1, -1);
+		return sample(Util.randomHexString(DEFAULT_RANDSEED_LENGTH),0,fraction,-1, -1);
 	}
 
 	public final AccumuloSortedMap<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
-		return sample(from_fraction,to_fraction,randSeed,-1,-1);		
+		return sample(randSeed,from_fraction,to_fraction,-1,-1);		
 	}
 
-	public AccumuloSortedMap<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed, final long min_timestamp, final long max_timestamp){
+	public AccumuloSortedMap<K, V> sample(final String randSeed,final double from_fraction, final double to_fraction, final long min_timestamp, final long max_timestamp){
 		Map<String,String> cfg = new HashMap<String,String>();
 		cfg.put(SamplingFilter.OPT_FROMFRACTION, Double.toString(from_fraction));
 		cfg.put(SamplingFilter.OPT_TOFRACTION, Double.toString(to_fraction));
