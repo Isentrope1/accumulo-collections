@@ -338,8 +338,8 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 	private Connector conn;
 	private SerDe keySerde = new JavaSerializationSerde();
-	protected int max_values_per_key=1;
-	private boolean readOnly = false;;
+	//protected int max_values_per_key=1;
+	private boolean readOnly = false;
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getKeySerde()
 	 */
@@ -1142,7 +1142,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			throw new UnsupportedOperationException("must set multiMap on base map, not derived map");
 
 		EnumSet<IteratorScope> all = EnumSet.allOf(IteratorScope.class);
-		this.max_values_per_key = max_values_per_key;
+		//this.max_values_per_key = max_values_per_key;
 		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
 			getConnector().tableOperations().removeIterator(getTable(), ITERATOR_NAME_VERSIONING, all);
 			log.info("Removed versioning iterator for table "+getTable());
@@ -1300,7 +1300,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 
 	public final AccumuloSortedMap<K, V> timeFilter(long min_timestamp, long max_timestamp){
-		return sample(0,1,"",min_timestamp,max_timestamp);
+		return sample("",0,1,min_timestamp,max_timestamp);
 	}
 	
 	/**
