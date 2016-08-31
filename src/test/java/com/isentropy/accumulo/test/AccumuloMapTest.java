@@ -220,6 +220,8 @@ extends TestCase
 	public void testMultiMap(Connector c, int maxValues) throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
 		AccumuloSortedMap<Number,Number> mm = new AccumuloSortedMap(c,Util.randomHexString(10));
 		mm.setMultiMap(maxValues);
+		assertTrue(mm.getMultiMapMaxValues() == maxValues);
+		System.out.println("mm.getMultiMapMaxValues() == "+ mm.getMultiMapMaxValues());
 		mm.put(1, 2);
 		mm.put(1, 3);
 		mm.put(1, 4);

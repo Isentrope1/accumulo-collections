@@ -1126,6 +1126,18 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		keySerde=s;
 		return this;
 	}
+
+	private static final String MAXVERSIONS_OPT = "maxVersions";
+
+	public int getMultiMapMaxValues() throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
+			IteratorSetting is = getConnector().tableOperations().getIteratorSetting(getTable(), ITERATOR_NAME_VERSIONING, IteratorScope.majc);
+			String maxversions = is.getOptions().get(MAXVERSIONS_OPT);
+			if(maxversions != null)
+				return Integer.parseInt(maxversions);
+		}
+		return -1;
+	}
 	/**
 	 * This method enables one-to-many mapping. It uses Accumulo's VersioningIterator. 
 	 * There is no way to delete a single value. You can only delete the key. 
