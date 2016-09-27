@@ -30,9 +30,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
+import com.isentropy.accumulo.collections.io.FixedPointSerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
-import com.isentropy.accumulo.collections.io.Utf8Serde;
 import com.isentropy.accumulo.util.Util;
 
 /**
@@ -49,7 +49,7 @@ import com.isentropy.accumulo.util.Util;
 public class AccumuloSortedMapFactory {
 	public static Logger log = LoggerFactory.getLogger(AccumuloSortedMapFactory.class);
 
-	// default Properties are written as table DEFAULT_SETTING_METATABLENAME
+	// default Properties are written as factory table DEFAULT_SETTING_METATABLENAME
 	public static final String DEFAULT_SETTING_METATABLENAME="!default!";
 
 	public static final String MAP_PROPERTY_KEY_SERDE=AccumuloSortedMap.OPT_KEY_SERDE;
@@ -65,10 +65,10 @@ public class AccumuloSortedMapFactory {
 		conn = c;
 		this.metadataTable = metadataTable;
 		tableAliasToProperties = new AccumuloSortedMap<String,Properties>(c,metadataTable);		
-		tableAliasToProperties.setKeySerde(new Utf8Serde());
+		tableAliasToProperties.setKeySerde(new FixedPointSerde());
 		tableAliasToProperties.setValueSerde(new JavaSerializationSerde());
-		addDefaultProperty(MAP_PROPERTY_KEY_SERDE, JavaSerializationSerde.class.getName());
-		addDefaultProperty(MAP_PROPERTY_VALUE_SERDE, JavaSerializationSerde.class.getName());
+		addDefaultProperty(MAP_PROPERTY_KEY_SERDE, FixedPointSerde.class.getName());
+		addDefaultProperty(MAP_PROPERTY_VALUE_SERDE, FixedPointSerde.class.getName());
 	}
 	
 	protected Properties getProperties(String tableName){

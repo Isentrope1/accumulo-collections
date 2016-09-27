@@ -53,7 +53,10 @@ public class JavaSerializationSerde implements SerDe{
 		return rslt;
 	}
 	public static Object javaDeserialize(byte[] b){
-		ByteArrayInputStream bis = new ByteArrayInputStream(b);
+		return javaDeserialize(b,0,b.length);
+	}
+	public static Object javaDeserialize(byte[] b, int offset, int len){
+		ByteArrayInputStream bis = new ByteArrayInputStream(b,offset,len);
 		try{
 			ObjectInputStream ois = new ObjectInputStream(bis);
 			return ois.readObject();

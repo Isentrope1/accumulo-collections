@@ -53,12 +53,13 @@ import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.AccumuloSortedProperties;
 import com.isentropy.accumulo.collections.EmptyAccumuloSortedMap;
 import com.isentropy.accumulo.collections.ForeignKey;
+
 import static com.isentropy.accumulo.collections.ForeignKey.resolve;
+
 import com.isentropy.accumulo.collections.MapAggregates;
 import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
-import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
-import com.isentropy.accumulo.collections.io.LongAsUtf8Serde;
-import com.isentropy.accumulo.collections.io.LongBinarySerde;
+import com.isentropy.accumulo.collections.io.FixedPointSerde;
+import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.util.TsvInputStreamIterator;
 import com.isentropy.accumulo.util.Util;
@@ -111,7 +112,7 @@ extends TestCase
 		Connector c = new MockInstance().getConnector("root", new PasswordToken());
 		//set up map load [x,2*x] for x in 1 to 1000
 		AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
-		asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+		asm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 		for(long i=0;i<1000;i++){
 			asm.put(i, 2*i);
 		}
@@ -179,6 +180,40 @@ extends TestCase
 
 	}
 	
+	public void testFixedPointSerde(Connector c) throws AccumuloException, AccumuloSecurityException{
+		AccumuloSortedMap asm = new AccumuloSortedMap(c,"testfp"+Util.randomHexString(10));
+		SerDe s = new FixedPointSerde();
+		byte zero = 0;
+		asm.setKeySerde(s).setValueSerde(s);
+		asm.put(-2, "minus two");
+		asm.put(-1.5f, "minus one point 5");
+		asm.put(-1, "minus one");
+		asm.put(zero, "zero");
+		asm.put(1l, "one");
+		asm.put(2, "two");
+		asm.put(1.4, "one point 4");
+		asm.put("a", "A");
+		asm.put("aa", "AA");
+		asm.put("b", "bbb");
+		asm.put("abb", "Abb");
+
+		byte[] byteKey = "bytes".getBytes();
+		asm.put(byteKey, "bytessss".getBytes());
+		
+		AccumuloSortedMap<Number,Object> numbers = asm.subMap(-3, 3);
+		assertTrue(numbers.size()==7);
+		Iterator<Number> it = numbers.keySet().iterator();
+		assertTrue(it.next().equals(-2l));
+		assertTrue(it.next().equals(-1.5));
+		Double prev = null;
+		for(Number n : numbers.keySet()){
+			double d=n.doubleValue();
+			if(prev != null && prev > d)
+				fail();
+			prev = d;
+		}
+	}
+	
 	public void testMapFactory(Connector c) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException, TableNotFoundException{
 		AccumuloSortedMapFactory fact = new AccumuloSortedMapFactory(c,"factory_table");
 		String tableName = "test_map_factory";
@@ -186,14 +221,14 @@ extends TestCase
 		AccumuloSortedMap asm2 = new AccumuloSortedMap(c,asm.getTable());
 		boolean err = false;
 		try{
-			asm.setKeySerde(new LongBinarySerde());
+			asm.setKeySerde(new FixedPointSerde());
 		}
 		catch(Exception e){
 			err=true;
 		}
 		assertTrue(err);
 		asm.put(123, 456);
-		assertTrue(asm2.get(123).equals(456));
+		assertTrue(asm2.get(123).equals(456l));
 
 		asm.clear();
 		/*
@@ -209,11 +244,11 @@ extends TestCase
 		*/
 		
 		//change the table-specific metadata for this table
-		fact.addMapSpecificProperty(tableName, AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE, LongAsUtf8Serde.class.getName());
+		fact.addMapSpecificProperty(tableName, AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE, FixedPointSerde.class.getName());
 		asm = fact.makeMap(tableName);
 		asm.put(123, 456);
-		asm2.setKeySerde(new LongAsUtf8Serde());
-		assertTrue(asm2.get(123).equals(456));
+		asm2.setKeySerde(new FixedPointSerde());
+		assertTrue(asm2.get(123).equals(456l));
 		
 		//asm.delete();
 	}
@@ -282,6 +317,7 @@ extends TestCase
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
 			testLinks(c);
+			testFixedPointSerde(c);
 			testMapFactory(c);
 			testMultiMap(c,9999);
 			testMultiMap(c,-1);
@@ -331,7 +367,7 @@ extends TestCase
 			assertTrue(err);
 			
 			long preaddts = System.currentTimeMillis();
-			asm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			asm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 			for(long i=0;i<1000;i++){
 				asm.put(i, 2*i);
 			}
@@ -394,7 +430,7 @@ extends TestCase
 			assertFalse(asm.keySet().contains(1001l));
 
 			AccumuloSortedMap copyOfAsm = new AccumuloSortedMap(c,"othertable");
-			copyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			copyOfAsm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 			copyOfAsm.putAll(asm);
 			int sz = asm.size();
 			assertTrue(copyOfAsm.size() == sz);
@@ -416,7 +452,7 @@ extends TestCase
 
 
 			AccumuloSortedMap transformedCopyOfAsm = new AccumuloSortedMap(c,"transformed");
-			transformedCopyOfAsm.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
+			transformedCopyOfAsm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 			transformedCopyOfAsm.putAll(asm, new KeyValueTransformer(){
 				@Override
 				public Entry transformKeyValue(Object fk, Object fv) {

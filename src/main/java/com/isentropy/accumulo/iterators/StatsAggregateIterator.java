@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
-import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.util.KeyValue;

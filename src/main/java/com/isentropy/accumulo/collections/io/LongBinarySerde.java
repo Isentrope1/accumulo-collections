@@ -34,6 +34,12 @@ import org.slf4j.LoggerFactory;
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.util.Util;
 
+/**
+ * 
+ * use FixedPointSerde instead, which does the same thing
+ * 
+ */
+@Deprecated
 public class LongBinarySerde implements SerDe{
 	public static Logger log = LoggerFactory.getLogger(LongBinarySerde.class);
 

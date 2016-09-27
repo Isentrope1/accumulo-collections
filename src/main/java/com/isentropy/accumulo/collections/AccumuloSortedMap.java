@@ -68,6 +68,7 @@ import org.apache.commons.math3.stat.descriptive.StatisticalSummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.isentropy.accumulo.collections.io.FixedPointSerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
@@ -337,7 +338,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	//submaps may pile on iterators to chain of getScanner. this int is the next iterator priority
 
 	private Connector conn;
-	private SerDe keySerde = new JavaSerializationSerde();
+	private SerDe keySerde = new FixedPointSerde();
 	//protected int max_values_per_key=1;
 	private boolean readOnly = false;
 	/* (non-Javadoc)
@@ -345,7 +346,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 */
 
 	private String table;
-	private SerDe valueSerde = new JavaSerializationSerde();
+	private SerDe valueSerde = new FixedPointSerde();
 
 	protected AccumuloSortedMap(){}
 
@@ -1289,7 +1290,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		final Range newRange = curRange == null ? requestedRange : curRange.clip(requestedRange,true);
 		//ranges are disjoint
 		if(newRange == null)
-			return new EmptyAccumuloSortedMap();
+			return new EmptyAccumuloSortedMap<K,V>();
 		return new Submap(newRange,this,getValueSerde());
 
 	}

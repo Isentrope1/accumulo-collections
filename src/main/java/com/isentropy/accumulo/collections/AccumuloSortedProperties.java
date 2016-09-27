@@ -27,12 +27,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 
-import com.isentropy.accumulo.collections.io.Utf8Serde;
+import com.isentropy.accumulo.collections.io.FixedPointSerde;
 
 public class AccumuloSortedProperties extends AccumuloSortedMap<String,String>{
 	public AccumuloSortedProperties(Connector c,String table) throws AccumuloException, AccumuloSecurityException{
 		super(c,table);
-		setKeySerde(new Utf8Serde());
-		setValueSerde(new Utf8Serde());
+		setKeySerde(new FixedPointSerde());
+		setValueSerde(new FixedPointSerde());
 	}
 }
