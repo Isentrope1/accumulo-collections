@@ -53,40 +53,27 @@ public class Util {
 		return c;
 	}
 
-	
+	/**
+	 * 
+	 * returns fraction*FFFF...FF (hashlenth bytes), represented in hex
+	 * @param hashlength
+	 * @param fraction
+	 * @return
+	 */
 
-	public static byte[] hashPoint(int hashlength,double f){
-
-		byte[] padded = new byte[hashlength];
-		for(int i=0;i<padded.length;i++){
-			padded[i]=(byte) 0xff;
+	public static byte[] hashPoint(int hashlength,double fraction){
+		int ones =  0xff;
+		byte[] rslt = new byte[hashlength];
+		double remainder=0;
+		for(int i=rslt.length-1;i>= 0;i--){
+			double product = (fraction* ones)+remainder;
+			int intpart = (int) product;
+			remainder = product - intpart;
+			rslt[i]= (byte) intpart;
 		}
-		BigInteger bi = new BigInteger(1, padded);
-		BigDecimal bdf = new BigDecimal(f);
-		int scale = bdf.scale();
-		byte[] unpadded = bi.multiply(bdf.unscaledValue()).divide(BigDecimal.ONE.scaleByPowerOfTen(scale).toBigInteger()).toByteArray();
-		
-		if(unpadded.length == hashlength){
-			return unpadded;
-		}
-		if(unpadded.length >= hashlength){
-			//remove leading 0s
-			for(int i=0;i<padded.length;i++){
-				padded[padded.length -1 - i] = unpadded[unpadded.length-1-i];
-			}
-			return padded;
-		}
-		
-		int c=0;
-		for(int i=0;i<padded.length - unpadded.length ;i++){
-			padded[c++]=0;
-		}
-		for(int i=0;i<unpadded.length;i++){
-			padded[c++]=unpadded[i];
-		}
-		return padded;
-
+		return rslt;
 	}
+
 	public static String bytesToHex(byte[] bytes) {
 	    char[] hexChars = new char[bytes.length * 2];
 	    for ( int j = 0; j < bytes.length; j++ ) {
@@ -105,4 +92,14 @@ public class Util {
 		r.nextBytes(b);
 		return b;
 	}
+/*	
+	public static void main(String[] args){
+		int len = 16;
+		Random r = new Random();
+		for(int i=0;i<100;i++){
+			float f = r.nextFloat();
+			System.out.println(f+"\n"+bytesToHex(hashPoint(16,f)) + "\n"+bytesToHex(hashPoint2(16,f)));
+		}
+	}
+*/
 }

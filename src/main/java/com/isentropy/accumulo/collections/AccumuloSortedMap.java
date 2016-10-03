@@ -339,8 +339,15 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 	private Connector conn;
 	private SerDe keySerde = new FixedPointSerde();
-	//protected int max_values_per_key=1;
 	private boolean readOnly = false;
+	
+	/**
+	 *  clearable is flag that allows clear() and delete(), which wipe the entire table
+	 *  it is fale by default
+	 */
+	private boolean clearable = false;
+	
+	
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#getKeySerde()
 	 */
@@ -382,8 +389,9 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	@Override
 	public void clear() {
 		if(isReadOnly())
-			throw new UnsupportedOperationException();
-
+			throw new UnsupportedOperationException("cant clear() readOnly map");
+		if(!isClearable())
+			throw new UnsupportedOperationException("must set setClearable(true) before calling clear()");
 		try {
 			batchWriter.close();
  			batchWriter = null;
@@ -452,6 +460,8 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	public void delete() throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
 		if(isReadOnly())
 			throw new UnsupportedOperationException();
+		if(!isClearable())
+			throw new UnsupportedOperationException("must set setClearable(true) before calling delete()");
 
 		log.warn("Deleting Accumulo table: "+getTable());
 		getConnector().tableOperations().delete(getTable());		
@@ -766,6 +776,9 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 				log.info("table already exists: "+getTable());
 			}
 		}
+	}
+	public boolean isClearable() {
+		return clearable;
 	}
 
 	public boolean isEmpty() {
@@ -1097,6 +1110,17 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			throw new RuntimeException(e);
 		}
 	}
+	/**
+	 * also sets readonly to false if clearable = true
+	 * @param clearable
+	 */
+	public AccumuloSortedMap<K, V>  setClearable(boolean clearable) {
+		this.clearable = clearable;
+		if(clearable)
+			setReadOnly(false);
+		return this;
+	}
+	
 	/**
 	 * sets the column family of values
 	 * @param cf
@@ -1439,5 +1463,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		}
 		return val;
 	}
+
+
 
 }

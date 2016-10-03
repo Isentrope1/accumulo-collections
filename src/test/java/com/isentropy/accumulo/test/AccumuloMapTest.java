@@ -230,18 +230,7 @@ extends TestCase
 		asm.put(123, 456);
 		assertTrue(asm2.get(123).equals(456l));
 
-		asm.clear();
-		/*
-		//change the default serde to LongBinarySerde
-		fact.addDefaultProperty(AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE, LongBinarySerde.class.getName());
-		fact.addDefaultProperty(AccumuloSortedMapFactory.MAP_PROPERTY_VALUE_SERDE, LongBinarySerde.class.getName());
-		asm = fact.makeMap(tableName);
-		asm.put(123, 4567);
-		asm2.setKeySerde(new LongBinarySerde()).setValueSerde(new LongBinarySerde());
-		assertTrue(asm2.get(123).equals(4567l));
-		
-		asm.clear();
-		*/
+		asm.setClearable(true).clear();
 		
 		//change the table-specific metadata for this table
 		fact.addMapSpecificProperty(tableName, AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE, FixedPointSerde.class.getName());
@@ -250,7 +239,6 @@ extends TestCase
 		asm2.setKeySerde(new FixedPointSerde());
 		assertTrue(asm2.get(123).equals(456l));
 		
-		//asm.delete();
 	}
 	public void testMultiMap(Connector c, int maxValues) throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
 		AccumuloSortedMap<Number,Number> mm = new AccumuloSortedMap(c,Util.randomHexString(10));
@@ -369,18 +357,6 @@ extends TestCase
 			long ts123 = asm.getTimestamp(123);
 			
 			asm.regexFilter("20", "4").dump(System.out);;
-		
-			//test join
-			/*
-			int i=0;
-			for(Iterator<JoinRow> join = asm.joinOnValue(asm);join.hasNext()&&i++<20;){
-				JoinRow row = join.next();
-				System.out.println(row);
-				assertEquals(row.getTransformedKey(),row.getValue());
-				assertEquals(2*((Long) row.getValue()),row.getJoinValue(0));
-				
-			}
-			*/
 			
 			
 			//sample random range
@@ -438,7 +414,7 @@ extends TestCase
 			assertTrue(copyOfAsm.size() == sz+10);
 			copyOfAsm.remove(0l);
 			assertTrue(copyOfAsm.size() == sz+9);
-			copyOfAsm.clear();
+			copyOfAsm.setClearable(true).clear();
 			assertTrue(copyOfAsm.size() == 0);
 			copyOfAsm.importAll(new ImportSimulationIterator(10));
 			assertTrue(copyOfAsm.size() == 10);
