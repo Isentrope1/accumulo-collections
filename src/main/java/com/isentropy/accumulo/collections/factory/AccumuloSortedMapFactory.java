@@ -26,6 +26,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,12 +56,14 @@ public class AccumuloSortedMapFactory {
 	public static final String MAP_PROPERTY_KEY_SERDE=AccumuloSortedMap.OPT_KEY_SERDE;
 	public static final String MAP_PROPERTY_VALUE_SERDE=AccumuloSortedMap.OPT_VALUE_INPUT_SERDE;
 	public static final String MAP_PROPERTY_TABLE_NAME="table_name";
-	public static final int RANDOM_TABLE_NAME_LENGTH = 20;
+	public static final String MAP_PROPERTY_VALUES_PER_KEY="values_per_key";
+	
+	public static final int RANDOM_TABLE_NAME_LENGTH = 10;
 
 	
 	private AccumuloSortedMap<String,Properties> tableAliasToProperties;
-	String metadataTable;
-	Connector conn;
+	private String metadataTable;
+	private Connector conn;
 	public AccumuloSortedMapFactory(Connector c, String metadataTable) throws AccumuloException, AccumuloSecurityException {
 		conn = c;
 		this.metadataTable = metadataTable;
@@ -74,6 +77,10 @@ public class AccumuloSortedMapFactory {
 	protected Properties getProperties(String tableName){
 		return tableAliasToProperties.get(tableName);
 	}
+	protected String createTableName(String tableAlias){
+		return metadataTable+"_"+tableAlias+"_"+ Util.randomHexString(RANDOM_TABLE_NAME_LENGTH);
+	}
+
 	/**
 	 * this sets up the map according to the metadata, setting serdes
 	 * @param tableName
@@ -85,9 +92,6 @@ public class AccumuloSortedMapFactory {
 	 * @throws InstantiationException 
 	 */
 	public FactoryAccumuloSortedMap makeMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		return makeMap(tableAlias,true);
-	}
-	public FactoryAccumuloSortedMap makeMap(String tableAlias, boolean create) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		Properties props = tableAliasToProperties.get(DEFAULT_SETTING_METATABLENAME);
 		if(props == null){
 			props = new Properties();
@@ -97,13 +101,14 @@ public class AccumuloSortedMapFactory {
 		if(p != null)
 			props.putAll(p);
 		if((tableName = props.getProperty(MAP_PROPERTY_TABLE_NAME)) == null){
-			tableName = Util.randomHexString(RANDOM_TABLE_NAME_LENGTH);
+			tableName = createTableName(tableAlias);
 			props.put(MAP_PROPERTY_TABLE_NAME, tableName);
 			tableAliasToProperties.put(tableAlias, props);
 		}
 		
-		FactoryAccumuloSortedMap out = new FactoryAccumuloSortedMap(conn,tableName,create);
+		FactoryAccumuloSortedMap out = new FactoryAccumuloSortedMap(conn,tableName,true);
 		configureMap(out,props,tableAlias);
+		out.isInitialized = true;
 		return out;
 	}
 	public FactoryAccumuloSortedMap makeReadOnlyMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
@@ -120,12 +125,28 @@ public class AccumuloSortedMapFactory {
 		if((v = props.getProperty(MAP_PROPERTY_VALUE_SERDE)) != null){
 			map.setValueSerde((SerDe) Class.forName(v).newInstance());
 		}
+		if((v = props.getProperty(MAP_PROPERTY_VALUES_PER_KEY)) != null){
+			try {
+				map.setMultiMap(Integer.parseInt(v));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		map.setTableAlias(tableAlias);
 		map.setFactoryName(metadataTable);
 	}
 	
 	public void addDefaultProperty(String key,String value){
 		addMapSpecificProperty(DEFAULT_SETTING_METATABLENAME,key,value);
+	}
+	public void removeMapSpecificProperty(String tableName,String key){
+		Properties p = getProperties(tableName);
+		if(p != null){
+			p.remove(key);
+		}
+	}
+	public void removeDefaultProperty(String key){
+		removeMapSpecificProperty(DEFAULT_SETTING_METATABLENAME,key);
 	}
 	public void addMapSpecificProperty(String tableName,String key,String value){
 		Properties p = getProperties(tableName);

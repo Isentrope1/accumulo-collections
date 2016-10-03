@@ -36,6 +36,7 @@ import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
  * @param <V>
  */
 public class ForeignKey<V> implements Serializable {
+	private static final long serialVersionUID = 1;
 
 	private String factoryName=null,tableName=null;
 	private Object key=null;
@@ -64,7 +65,7 @@ public class ForeignKey<V> implements Serializable {
 			if(factoryName != null){
 				if(fact ==null)
 					fact = new AccumuloSortedMapFactory(conn,factoryName);
-				map=fact.makeMap(tableName,false);
+				map=fact.makeMap(tableName);
 			}
 			else{
 				map = new AccumuloSortedMap(conn,tableName,false,false);

@@ -24,6 +24,7 @@ package com.isentropy.accumulo.collections.factory;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
 import com.isentropy.accumulo.collections.ForeignKey;
@@ -37,32 +38,35 @@ import com.isentropy.accumulo.collections.io.SerDe;
  */
 public class FactoryAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
 	protected String factoryName,tableAlias;
+	protected boolean isInitialized=false;
+	
 	public FactoryAccumuloSortedMap(Connector c, String table) throws AccumuloException, AccumuloSecurityException{
 		super(c,table);
-		super.setKeySerde(null);
-		super.setValueSerde(null);
 	}
 	public FactoryAccumuloSortedMap(Connector c, String table, boolean create) throws AccumuloException, AccumuloSecurityException{
 		super(c,table,create,false);
-		super.setKeySerde(null);
-		super.setValueSerde(null);
 	}
-
-
+	
 	@Override
 	public AccumuloSortedMap<K, V> setKeySerde(SerDe s){
-		if(getKeySerde() == null)
-			return super.setKeySerde(s);
-		else
-			throw new UnsupportedOperationException("cant setKeySerde on a factory-created map. set serde from factory.");
+		if(isInitialized)
+			throw new UnsupportedOperationException("cant call setKeySerde on initialized factory map. set factory property "+AccumuloSortedMapFactory.MAP_PROPERTY_KEY_SERDE);		
+		return super.setKeySerde(s);
 	}
 	@Override
 	public AccumuloSortedMap<K, V> setValueSerde(SerDe s){
-		if(getValueSerde() == null)
-			return super.setValueSerde(s);
-		else
-			throw new UnsupportedOperationException("cant setValueSerde on a factory-created map. set serde from factory.");
+		if(isInitialized)
+			throw new UnsupportedOperationException("cant call setValueSerde on initialized factory map. set factory property "+AccumuloSortedMapFactory.MAP_PROPERTY_VALUE_SERDE);		
+		return super.setValueSerde(s);
 	}
+	@Override
+	public AccumuloSortedMap<K, V> setMultiMap(int mm) throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+		if(isInitialized)
+			throw new UnsupportedOperationException("cant call setMultiMap on initialized factory map. set factory property "+AccumuloSortedMapFactory.MAP_PROPERTY_VALUES_PER_KEY + 
+					" to setMultiMap in factory");
+		return super.setMultiMap(mm);
+	}
+	
 	public String getFactoryName(){
 		return factoryName;
 	}

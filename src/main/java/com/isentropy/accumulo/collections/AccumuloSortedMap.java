@@ -1154,6 +1154,12 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		if(isReadOnly())
 			throw new UnsupportedOperationException("must set multiMap on base map, not derived map");
 
+		int existingMM = getMultiMapMaxValues(); 
+		if(max_values_per_key == existingMM){
+			log.info("setMultiMap doing nothing because max_values_per_key is already set to "+existingMM);
+			return this;
+		}
+		
 		EnumSet<IteratorScope> all = EnumSet.allOf(IteratorScope.class);
 		//this.max_values_per_key = max_values_per_key;
 		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
