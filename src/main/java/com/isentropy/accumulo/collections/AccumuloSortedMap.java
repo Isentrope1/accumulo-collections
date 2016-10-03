@@ -342,8 +342,8 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	private boolean readOnly = false;
 	
 	/**
-	 *  clearable is flag that allows clear() and delete(), which wipe the entire table
-	 *  it is fale by default
+	 *  clearable is flag that permits clear() and delete(), which wipe the entire table.
+	 *  It is false by default.
 	 */
 	private boolean clearable = false;
 	

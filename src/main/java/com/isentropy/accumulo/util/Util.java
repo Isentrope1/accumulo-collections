@@ -56,6 +56,8 @@ public class Util {
 	/**
 	 * 
 	 * returns fraction*FFFF...FF (hashlenth bytes), represented in hex
+	 * 0th byte is most significant
+	 * 
 	 * @param hashlength
 	 * @param fraction
 	 * @return
@@ -65,10 +67,10 @@ public class Util {
 		int ones =  0xff;
 		byte[] rslt = new byte[hashlength];
 		double remainder=0;
-		for(int i=rslt.length-1;i>= 0;i--){
-			double product = (fraction* ones)+remainder;
+		for(int i=0;i<rslt.length;i++){
+			double product = (fraction* ones)+(remainder*256);
 			int intpart = (int) product;
-			remainder = product - intpart;
+			remainder = (product - intpart);
 			rslt[i]= (byte) intpart;
 		}
 		return rslt;
@@ -92,14 +94,15 @@ public class Util {
 		r.nextBytes(b);
 		return b;
 	}
-/*	
+	
 	public static void main(String[] args){
 		int len = 16;
 		Random r = new Random();
 		for(int i=0;i<100;i++){
 			float f = r.nextFloat();
-			System.out.println(f+"\n"+bytesToHex(hashPoint(16,f)) + "\n"+bytesToHex(hashPoint2(16,f)));
+			f=.00001f;
+			System.out.println(f+"\n"+bytesToHex(hashPoint(16,f)));
 		}
 	}
-*/
+
 }
