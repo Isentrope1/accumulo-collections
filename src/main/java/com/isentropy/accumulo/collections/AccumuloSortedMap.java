@@ -385,6 +385,8 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			throw new UnsupportedOperationException();
 
 		try {
+			batchWriter.close();
+ 			batchWriter = null;
 			delete();
 			createTable();
 		} catch (Exception e) {
@@ -1071,7 +1073,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		return sample(Util.randomHexString(DEFAULT_RANDSEED_LENGTH),0,fraction,-1, -1);
 	}
 
-	public final AccumuloSortedMap<K, V> sample(final double from_fraction, final double to_fraction,final String randSeed){
+	public final AccumuloSortedMap<K, V> sample(final String randSeed, final double from_fraction, final double to_fraction){
 		return sample(randSeed,from_fraction,to_fraction,-1,-1);		
 	}
 

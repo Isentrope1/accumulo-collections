@@ -79,9 +79,9 @@ extends TestCase
 	 *
 	 * @param testName name of the test case
 	 */
-	public AccumuloMapTest( String testName )
+	public AccumuloMapTest()
 	{
-		super( testName );
+		super("testApp" );
 	}
 
 	public void testImport(Connector c) throws AccumuloException, AccumuloSecurityException, IOException{
@@ -89,7 +89,7 @@ extends TestCase
 				"b\tbb\n"+
 				"c\tcc\n";
 				
-		AccumuloSortedProperties im = new AccumuloSortedProperties(c,"testimport");
+		AccumuloSortedProperties im = new AccumuloSortedProperties(c,"testimport"+Util.randomHexString(10));
 		im.importAll(new TsvInputStreamIterator(new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8))));
 		assertTrue(im.containsKey("a"));
 		assertTrue(im.containsValue("bb"));
@@ -111,7 +111,7 @@ extends TestCase
 		//Connector c = new ZooKeeperInstance(instanceName,zookeepers).getConnector(myUsername, new PasswordToken(myPassword));
 		Connector c = new MockInstance().getConnector("root", new PasswordToken());
 		//set up map load [x,2*x] for x in 1 to 1000
-		AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+		AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable"+Util.randomHexString(10));
 		asm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 		for(long i=0;i<1000;i++){
 			asm.put(i, 2*i);
@@ -140,9 +140,9 @@ extends TestCase
 		submap.sample(.5).dump(System.out); System.out.println();
 
 		// sample 40% of entries based on the ordering of seed "randomseed"
-		submap.sample(0,.4,"randomseed").dump(System.out); System.out.println();
+		submap.sample("randomseed",0,.4).dump(System.out); System.out.println();
 		// should be the SAME set as above if map hasn't changed because seed and hash range are the same
-		submap.sample(0,.4,"randomseed").dump(System.out); System.out.println();
+		submap.sample("randomseed",0,.4).dump(System.out); System.out.println();
 
 		// SERVER-SIDE aggregates
 		//numerical stats work for values that are instances of Number
@@ -316,29 +316,21 @@ extends TestCase
 	{
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
+//			Connector c = new ZooKeeperInstance("t0","zk:2181").getConnector("root", new PasswordToken("secret"));
 			testLinks(c);
 			testFixedPointSerde(c);
 			testMapFactory(c);
 			testMultiMap(c,9999);
 			testMultiMap(c,-1);
 			testEmptyMap();
-/*
-    		//setup for MiniAccumulo
-			File tempDirectory = new File("/tmp/asmTest");
-			MiniAccumuloCluster accumulo = new MiniAccumuloCluster(tempDirectory, "password");
-			accumulo.start();
-			Thread.sleep(60000);
-			Connector c = accumulo.getConnector("root", "password");
-*/			
-			// run benchmark:
-	//		new Benchmark().benchmark(c, System.out, 999999,10);
+
 			
-			//set up map load [x,2*x] for x in 1 to 1000
-			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable");
+			AccumuloSortedMap asm = new AccumuloSortedMap(c,"mytable"+Util.randomHexString(10));
+			asm.setTimeOutMs(-1);
 			
 			boolean err = false;
 			try{
-				AccumuloSortedMap asmSameNameConflict = new AccumuloSortedMap(c,"mytable",true,true);
+				AccumuloSortedMap asmSameNameConflict = new AccumuloSortedMap(c,asm.getTable(),true,true);
 			}
 			catch(AccumuloException e){
 				err = true;
@@ -348,7 +340,7 @@ extends TestCase
 			
 			err=false;
 			try{
-				AccumuloSortedMap asmSameNameNoConflict = new AccumuloSortedMap(c,"mytable",true,false);
+				AccumuloSortedMap asmSameNameNoConflict = new AccumuloSortedMap(c,asm.getTable(),true,false);
 			}
 			catch(AccumuloException e){
 				err = true;
@@ -357,7 +349,7 @@ extends TestCase
 			
 			err=false;
 			try{
-				AccumuloSortedMap readOnly = new AccumuloSortedMap(c,"mytable",true,false);
+				AccumuloSortedMap readOnly = new AccumuloSortedMap(c,"ro"+Util.randomHexString(10),true,false);
 				readOnly.setReadOnly(true);
 				readOnly.put(123, 456);
 			}
@@ -371,6 +363,8 @@ extends TestCase
 			for(long i=0;i<1000;i++){
 				asm.put(i, 2*i);
 			}
+			//asm.dump(System.out);
+			System.out.println("asm.size() = "+asm.size());
 			long postaddts = System.currentTimeMillis();
 			long ts123 = asm.getTimestamp(123);
 			
@@ -395,9 +389,10 @@ extends TestCase
 			double from = Math.min(r1, r2);
 			double to = Math.max(r1, r2);
 			
-			long checksum = asm.sample(from,to,"abc").checksum();
+			long checksum = asm.sample("abc", from,to).checksum();
+			long checksum2 = asm.sample("abc", from,to).checksum();
 			//verfiy sample is the same
-			assertTrue(checksum == asm.sample(from,to,"abc").checksum());
+			assertTrue(checksum == checksum2);
 			System.out.println("checksum = " + checksum);
 			
 			
@@ -429,7 +424,7 @@ extends TestCase
 			assertTrue(asm.keySet().contains(999l));
 			assertFalse(asm.keySet().contains(1001l));
 
-			AccumuloSortedMap copyOfAsm = new AccumuloSortedMap(c,"othertable");
+			AccumuloSortedMap copyOfAsm = new AccumuloSortedMap(c,"othertable"+Util.randomHexString(10));
 			copyOfAsm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 			copyOfAsm.putAll(asm);
 			int sz = asm.size();
@@ -451,7 +446,7 @@ extends TestCase
 			copyOfAsm.dump(System.out);
 
 
-			AccumuloSortedMap transformedCopyOfAsm = new AccumuloSortedMap(c,"transformed");
+			AccumuloSortedMap transformedCopyOfAsm = new AccumuloSortedMap(c,"transformed"+Util.randomHexString(10));
 			transformedCopyOfAsm.setKeySerde(new FixedPointSerde()).setValueSerde(new FixedPointSerde());
 			transformedCopyOfAsm.putAll(asm, new KeyValueTransformer(){
 				@Override
