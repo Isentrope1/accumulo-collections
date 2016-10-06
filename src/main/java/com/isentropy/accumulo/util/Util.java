@@ -94,7 +94,7 @@ public class Util {
 		r.nextBytes(b);
 		return b;
 	}
-	
+	/*
 	public static void main(String[] args){
 		int len = 16;
 		Random r = new Random();
@@ -104,5 +104,6 @@ public class Util {
 			System.out.println(f+"\n"+bytesToHex(hashPoint(16,f)));
 		}
 	}
+	*/
 
 }

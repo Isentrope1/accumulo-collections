@@ -38,7 +38,7 @@ import com.isentropy.accumulo.collections.factory.AccumuloSortedMapFactory;
 public class ForeignKey<V> implements Serializable {
 	private static final long serialVersionUID = 1;
 
-	private String factoryName=null,tableName=null;
+	private String factoryName=null,mapName=null;
 	private Object key=null;
 	private transient Connector conn;
 	private transient AccumuloSortedMapFactory fact;
@@ -47,7 +47,7 @@ public class ForeignKey<V> implements Serializable {
 	public ForeignKey(Connector c, String factory_name, String table_name,Object key) {
 		conn=c;
 		factoryName=factory_name;
-		tableName=table_name;
+		mapName=table_name;
 		this.key = key;
 	}
 	public V resolve(Connector conn) throws InstantiationException, IllegalAccessException, ClassNotFoundException, AccumuloException, AccumuloSecurityException{
@@ -57,7 +57,7 @@ public class ForeignKey<V> implements Serializable {
 	public V resolve() throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		if(conn == null)
 			throw new InstantiationException("ForeignKey: Must set connection before resolve()");
-		if(tableName == null)
+		if(mapName == null)
 			throw new InstantiationException("ForeignKey: table name can't be null");
 		if(key == null)
 			return null;
@@ -65,10 +65,12 @@ public class ForeignKey<V> implements Serializable {
 			if(factoryName != null){
 				if(fact ==null)
 					fact = new AccumuloSortedMapFactory(conn,factoryName);
-				map=fact.makeMap(tableName);
+				if(!fact.containsMap(mapName))
+					return null;
+				map=fact.makeMap(mapName);
 			}
 			else{
-				map = new AccumuloSortedMap(conn,tableName,false,false);
+				map = new AccumuloSortedMap(conn,mapName,false,false);
 			}
 		}
 		return (V) map.get(key);

@@ -52,8 +52,10 @@ public abstract class ScannerDerivedMap<K,V> extends AccumuloSortedMap<K,V>{
 		return true;
 	}
 	
-	public abstract Scanner getScanner() throws TableNotFoundException;
-	public abstract Scanner getMultiScanner() throws TableNotFoundException;
+	@Override
+	protected abstract Scanner getScanner() throws TableNotFoundException;
+	@Override
+	protected abstract Scanner getMultiScanner() throws TableNotFoundException;
 	
 	
 	@Override

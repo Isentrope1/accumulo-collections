@@ -75,6 +75,7 @@ import com.isentropy.accumulo.collections.mappers.CountsDerivedMapper;
 import com.isentropy.accumulo.collections.mappers.RowStatsMapper;
 import com.isentropy.accumulo.collections.transform.KeyValueTransformer;
 import com.isentropy.accumulo.iterators.AggregateIterator;
+import com.isentropy.accumulo.iterators.KeyToKeyMapTransformer;
 import com.isentropy.accumulo.iterators.RegexFilter;
 import com.isentropy.accumulo.iterators.SamplingFilter;
 import com.isentropy.accumulo.iterators.StatsAggregateIterator;
@@ -357,10 +358,29 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 
 	protected AccumuloSortedMap(){}
 
+	/**
+	 * Use AccumuloSortedMapFactory.makeMap() instead
+	 * @param c
+	 * @param table
+	 * @throws AccumuloException
+	 * @throws AccumuloSecurityException
+	 */
+	
+	@Deprecated
 	public AccumuloSortedMap(Connector c,String table) throws AccumuloException, AccumuloSecurityException {
 		this(c,table,true,false);
 	}
 
+	/**
+	 * 	 * Use AccumuloSortedMapFactory.makeMap() instead
+	 * @param c
+	 * @param table
+	 * @param createTable
+	 * @param errorIfTableAlreadyExists
+	 * @throws AccumuloException
+	 * @throws AccumuloSecurityException
+	 */
+	@Deprecated
 	public AccumuloSortedMap(Connector c,String table, boolean createTable,boolean errorIfTableAlreadyExists) throws AccumuloException, AccumuloSecurityException {
 		conn = c;
 		this.table = table;
@@ -375,15 +395,25 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 *  checksum runs on the deserialized java objects and should therefore be
 	 *  independent of SerDe
 	 */	
-	public long checksum(){
-		return MapAggregates.checksum(this);
+	public final long checksum(){
+		return checksum(false);
 	}
 	public final int checksumKeys(){
-		return (int) (checksum() >>> 32);
+		return checksumKeys(false);
 	}
 
 	public final int checksumValues(){
-		return (int) checksum();
+		return checksumValues(false);
+	}
+	public long checksum(boolean includeMultipleValues){
+		return MapAggregates.checksum(this,includeMultipleValues);
+	}
+	public final int checksumKeys(boolean includeMultipleValues){
+		return (int) (checksum(includeMultipleValues) >>> 32);
+	}
+
+	public final int checksumValues(boolean includeMultipleValues){
+		return (int) checksum(includeMultipleValues);
 	}
 
 	@Override
@@ -393,8 +423,6 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		if(!isClearable())
 			throw new UnsupportedOperationException("must set setClearable(true) before calling clear()");
 		try {
-			batchWriter.close();
- 			batchWriter = null;
 			delete();
 			createTable();
 		} catch (Exception e) {
@@ -462,7 +490,8 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			throw new UnsupportedOperationException();
 		if(!isClearable())
 			throw new UnsupportedOperationException("must set setClearable(true) before calling delete()");
-
+		batchWriter.close();
+		batchWriter = null;
 		log.warn("Deleting Accumulo table: "+getTable());
 		getConnector().tableOperations().delete(getTable());		
 	}
@@ -659,6 +688,17 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	public SerDe getKeySerde(){
 		return keySerde;
 	}
+	
+	private static final String MAXVERSIONS_OPT = "maxVersions";
+	public int getMultiMapMaxValues() throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
+			IteratorSetting is = getConnector().tableOperations().getIteratorSetting(getTable(), ITERATOR_NAME_VERSIONING, IteratorScope.majc);
+			String maxversions = is.getOptions().get(MAXVERSIONS_OPT);
+			if(maxversions != null)
+				return Integer.parseInt(maxversions);
+		}
+		return -1;
+	}
 
 	/* (non-Javadoc)
 	 * @see com.isentropy.accumulo.collections.AccumuloSortedMapIF#delete()
@@ -691,7 +731,17 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		return table;
 	}
 
-
+	private static final String TTL = "ttl";
+	public long getTimeOutMs() throws NumberFormatException, AccumuloSecurityException, AccumuloException, TableNotFoundException{
+		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_AGEOFF)){
+			IteratorSetting is = getConnector().tableOperations().getIteratorSetting(getTable(), ITERATOR_NAME_AGEOFF, IteratorScope.majc);
+			String ttl = is.getOptions().get(TTL);
+			if(ttl != null)
+				return Long.parseLong(ttl);
+		}
+		return -1;
+	}
+	
 	public long getTimestamp(K key){
 		Entry<Key, Value> e = getEntry(key);
 		if(e == null)
@@ -884,6 +934,17 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 				return a;
 			}};
 	}
+	
+	public StatisticalSummary keyStats(){
+		return keyToKeyMap().valueStats(false);
+	}
+	
+	public AccumuloSortedMap<K, K> keyToKeyMap() {
+		Map<String,String> cfg = new HashMap<String,String>();
+		configureSerdes(cfg,getKeySerde());
+		return new IteratorStackedSubmap<K,K>(this,KeyToKeyMapTransformer.class,cfg,getKeySerde());
+	}
+	
 
 	/**
 	 * is there no way in accumulo to efficiently scan to last key??
@@ -1004,6 +1065,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			}
 		}
 	}
+	
 	public AccumuloSortedMap<K, V> regexFilter(String keyRegex,
 			String valueRegex) {
 		Map<String,String> cfg = new HashMap<String,String>();
@@ -1154,17 +1216,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		return this;
 	}
 
-	private static final String MAXVERSIONS_OPT = "maxVersions";
-
-	public int getMultiMapMaxValues() throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
-		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
-			IteratorSetting is = getConnector().tableOperations().getIteratorSetting(getTable(), ITERATOR_NAME_VERSIONING, IteratorScope.majc);
-			String maxversions = is.getOptions().get(MAXVERSIONS_OPT);
-			if(maxversions != null)
-				return Integer.parseInt(maxversions);
-		}
-		return -1;
-	}
+	
 	/**
 	 * This method enables one-to-many mapping. It uses Accumulo's VersioningIterator. 
 	 * There is no way to delete a single value. You can only delete the key. 

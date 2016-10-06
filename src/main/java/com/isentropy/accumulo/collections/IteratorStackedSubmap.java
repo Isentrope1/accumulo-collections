@@ -52,7 +52,7 @@ public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
 	}
 	
 	@Override
-	public Scanner getScanner() throws TableNotFoundException{
+	protected Scanner getScanner() throws TableNotFoundException{
 		if(isAggregate)
 			return getMultiScanner();
 		Scanner s = parent.getScanner();
@@ -63,7 +63,7 @@ public class IteratorStackedSubmap<K,V> extends ScannerDerivedMap<K,V>{
 		return s;
 	}
 	@Override
-	public Scanner getMultiScanner() throws TableNotFoundException{
+	protected Scanner getMultiScanner() throws TableNotFoundException{
 		Scanner s = parent.getMultiScanner();
 		IteratorSetting cfg = new IteratorSetting(parent.nextIteratorPriority(), iterator);
 		cfg.setName(iterator.getSimpleName()+parent.nextIteratorPriority());

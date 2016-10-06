@@ -40,10 +40,10 @@ public class FactoryAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
 	protected String factoryName,tableAlias;
 	protected boolean isInitialized=false;
 	
-	public FactoryAccumuloSortedMap(Connector c, String table) throws AccumuloException, AccumuloSecurityException{
+	protected FactoryAccumuloSortedMap(Connector c, String table) throws AccumuloException, AccumuloSecurityException{
 		super(c,table);
 	}
-	public FactoryAccumuloSortedMap(Connector c, String table, boolean create) throws AccumuloException, AccumuloSecurityException{
+	protected FactoryAccumuloSortedMap(Connector c, String table, boolean create) throws AccumuloException, AccumuloSecurityException{
 		super(c,table,create,false);
 	}
 	

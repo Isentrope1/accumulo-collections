@@ -74,11 +74,15 @@ public class AccumuloSortedMapFactory {
 		addDefaultProperty(MAP_PROPERTY_VALUE_SERDE, FixedPointSerde.class.getName());
 	}
 	
-	protected Properties getProperties(String tableName){
-		return tableAliasToProperties.get(tableName);
+	protected Properties getProperties(String mapName){
+		return tableAliasToProperties.get(mapName);
 	}
-	protected String createTableName(String tableAlias){
-		return metadataTable+"_"+tableAlias+"_"+ Util.randomHexString(RANDOM_TABLE_NAME_LENGTH);
+	protected String createTableName(String mapName){
+		return metadataTable+"_"+mapName+"_"+ Util.randomHexString(RANDOM_TABLE_NAME_LENGTH);
+	}
+	
+	public boolean containsMap(String mapName){
+		return tableAliasToProperties.containsKey(mapName);
 	}
 
 	/**
@@ -91,28 +95,28 @@ public class AccumuloSortedMapFactory {
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
 	 */
-	public FactoryAccumuloSortedMap makeMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+	public FactoryAccumuloSortedMap makeMap(String mapName) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
 		Properties props = tableAliasToProperties.get(DEFAULT_SETTING_METATABLENAME);
 		if(props == null){
 			props = new Properties();
 		}
 		String tableName;
-		Properties p = getProperties(tableAlias);
+		Properties p = getProperties(mapName);
 		if(p != null)
 			props.putAll(p);
 		if((tableName = props.getProperty(MAP_PROPERTY_TABLE_NAME)) == null){
-			tableName = createTableName(tableAlias);
+			tableName = createTableName(mapName);
 			props.put(MAP_PROPERTY_TABLE_NAME, tableName);
-			tableAliasToProperties.put(tableAlias, props);
+			tableAliasToProperties.put(mapName, props);
 		}
 		
 		FactoryAccumuloSortedMap out = new FactoryAccumuloSortedMap(conn,tableName,true);
-		configureMap(out,props,tableAlias);
+		configureMap(out,props,mapName);
 		out.isInitialized = true;
 		return out;
 	}
-	public FactoryAccumuloSortedMap makeReadOnlyMap(String tableAlias) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
-		FactoryAccumuloSortedMap map = makeMap(tableAlias);
+	public FactoryAccumuloSortedMap makeReadOnlyMap(String mapName) throws AccumuloException, AccumuloSecurityException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		FactoryAccumuloSortedMap map = makeMap(mapName);
 		map.setReadOnly(true);
 		return map;
 	}
