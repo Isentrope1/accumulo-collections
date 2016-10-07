@@ -38,7 +38,7 @@ public abstract class DeserializedEntryTransformingIterator extends Deserialized
 	 * @return the output object. the output key is the input key
 	 * @throws IOException
 	 */
-	protected abstract Object transform(Object key,Object value) throws IOException;
+	protected abstract Object transformValue(Object key,Object value) throws IOException;
 	
 
 	@Override
@@ -50,7 +50,7 @@ public abstract class DeserializedEntryTransformingIterator extends Deserialized
 			Value v = input.getTopValue();
 			Object vo = value_input_serde.deserialize(v.get());
 			Object ko = key_serde.deserialize(kd);
-			output.append(k, new Value(value_output_serde.serialize(transform(ko,vo))));
+			output.append(k, new Value(value_output_serde.serialize(transformValue(ko,vo))));
 			input.next();
 		}
 	}

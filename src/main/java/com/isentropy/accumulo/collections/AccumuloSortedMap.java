@@ -490,13 +490,14 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			throw new UnsupportedOperationException();
 		if(!isClearable())
 			throw new UnsupportedOperationException("must set setClearable(true) before calling delete()");
-		batchWriter.close();
+		if(batchWriter != null)
+			batchWriter.close();
 		batchWriter = null;
 		log.warn("Deleting Accumulo table: "+getTable());
 		getConnector().tableOperations().delete(getTable());		
 	}
 
-	protected IteratorStackedSubmap<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde, boolean isAggregate){
+	public IteratorStackedSubmap<K,?> derivedMapFromIterator(Class<? extends SortedKeyValueIterator<Key, Value>> iterator, Map<String,String> iterator_options, SerDe derivedMapValueSerde, boolean isAggregate){
 		Map<String,String> itcfg = new HashMap<String,String>();
 		if(iterator_options != null)
 			itcfg.putAll(iterator_options);
@@ -690,7 +691,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	}
 	
 	private static final String MAXVERSIONS_OPT = "maxVersions";
-	public int getMultiMapMaxValues() throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+	public int getMaxValuesPerKey() throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
 		if(getConnector().tableOperations().listIterators(getTable()).containsKey(ITERATOR_NAME_VERSIONING)){
 			IteratorSetting is = getConnector().tableOperations().getIteratorSetting(getTable(), ITERATOR_NAME_VERSIONING, IteratorScope.majc);
 			String maxversions = is.getOptions().get(MAXVERSIONS_OPT);
@@ -1228,11 +1229,11 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 * @throws AccumuloException
 	 * @throws TableNotFoundException
 	 */
-	public AccumuloSortedMap<K, V> setMultiMap(int max_values_per_key) throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+	public AccumuloSortedMap<K, V> setMaxValuesPerKey(int max_values_per_key) throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
 		if(isReadOnly())
 			throw new UnsupportedOperationException("must set multiMap on base map, not derived map");
 
-		int existingMM = getMultiMapMaxValues(); 
+		int existingMM = getMaxValuesPerKey(); 
 		if(max_values_per_key == existingMM){
 			log.info("setMultiMap doing nothing because max_values_per_key is already set to "+existingMM);
 			return this;

@@ -31,7 +31,7 @@ import java.io.IOException;
 public class KeyToKeyMapTransformer extends
 		DeserializedEntryTransformingIterator {
 	@Override
-	protected Object transform(Object key, Object value) throws IOException {
+	protected Object transformValue(Object key, Object value) throws IOException {
 		return key;
 	}
 

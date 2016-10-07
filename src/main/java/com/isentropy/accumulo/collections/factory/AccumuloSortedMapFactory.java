@@ -57,6 +57,7 @@ public class AccumuloSortedMapFactory {
 	public static final String MAP_PROPERTY_VALUE_SERDE=AccumuloSortedMap.OPT_VALUE_INPUT_SERDE;
 	public static final String MAP_PROPERTY_TABLE_NAME="table_name";
 	public static final String MAP_PROPERTY_VALUES_PER_KEY="values_per_key";
+	public static final String MAP_PROPERTY_TTL="ttl";
 	
 	public static final int RANDOM_TABLE_NAME_LENGTH = 10;
 
@@ -111,7 +112,12 @@ public class AccumuloSortedMapFactory {
 		}
 		
 		FactoryAccumuloSortedMap out = new FactoryAccumuloSortedMap(conn,tableName,true);
-		configureMap(out,props,mapName);
+		try {
+			configureMap(out,props,mapName);
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			throw new AccumuloException(e);
+		}
 		out.isInitialized = true;
 		return out;
 	}
@@ -121,7 +127,7 @@ public class AccumuloSortedMapFactory {
 		return map;
 	}
 	
-	protected void configureMap(FactoryAccumuloSortedMap map, Properties props,String tableAlias) throws InstantiationException, IllegalAccessException, ClassNotFoundException{
+	protected void configureMap(FactoryAccumuloSortedMap map, Properties props,String tableAlias) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NumberFormatException, AccumuloSecurityException, AccumuloException, TableNotFoundException{
 		String v;
 		if((v = props.getProperty(MAP_PROPERTY_KEY_SERDE)) != null){
 			map.setKeySerde((SerDe) Class.forName(v).newInstance());
@@ -130,11 +136,10 @@ public class AccumuloSortedMapFactory {
 			map.setValueSerde((SerDe) Class.forName(v).newInstance());
 		}
 		if((v = props.getProperty(MAP_PROPERTY_VALUES_PER_KEY)) != null){
-			try {
-				map.setMultiMap(Integer.parseInt(v));
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+				map.setMaxValuesPerKey(Integer.parseInt(v));
+		}
+		if((v = props.getProperty(MAP_PROPERTY_TTL)) != null){
+			map.setTimeOutMs(Long.parseLong(v));
 		}
 		map.setTableAlias(tableAlias);
 		map.setFactoryName(metadataTable);

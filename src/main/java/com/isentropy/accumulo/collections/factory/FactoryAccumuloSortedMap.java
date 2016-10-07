@@ -60,11 +60,11 @@ public class FactoryAccumuloSortedMap<K,V> extends AccumuloSortedMap<K, V> {
 		return super.setValueSerde(s);
 	}
 	@Override
-	public AccumuloSortedMap<K, V> setMultiMap(int mm) throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
+	public AccumuloSortedMap<K, V> setMaxValuesPerKey(int mm) throws AccumuloSecurityException, AccumuloException, TableNotFoundException{
 		if(isInitialized)
 			throw new UnsupportedOperationException("cant call setMultiMap on initialized factory map. set factory property "+AccumuloSortedMapFactory.MAP_PROPERTY_VALUES_PER_KEY + 
 					" to setMultiMap in factory");
-		return super.setMultiMap(mm);
+		return super.setMaxValuesPerKey(mm);
 	}
 	
 	public String getFactoryName(){

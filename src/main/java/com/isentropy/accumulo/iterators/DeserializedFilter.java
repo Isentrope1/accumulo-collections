@@ -48,7 +48,7 @@ public abstract class DeserializedFilter extends Filter{
 	protected SerDe key_serde = null;
 	protected SerDe value_serde = null;
 
-	protected abstract boolean acceptDeserialized(Object key, Object value);
+	protected abstract boolean allow(Object key, Object value);
 
 	
 	SecureClassLoader cl = new SecureClassLoader(){
@@ -108,7 +108,7 @@ public abstract class DeserializedFilter extends Filter{
 
 	@Override
 	public final boolean accept(Key k, Value v) {
-		return acceptDeserialized(key_serde.deserialize(k.getRowData().toArray()), value_serde.deserialize(v.get()));
+		return allow(key_serde.deserialize(k.getRowData().toArray()), value_serde.deserialize(v.get()));
 	}
 
 }

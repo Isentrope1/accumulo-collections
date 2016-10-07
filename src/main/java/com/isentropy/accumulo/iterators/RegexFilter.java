@@ -48,7 +48,7 @@ public class RegexFilter extends DeserializedFilter{
 		
 	}
 	@Override
-	protected boolean acceptDeserialized(Object key, Object value) {
+	protected boolean allow(Object key, Object value) {
 		return (keyRegex == null || keyRegex.matcher(key.toString()).find()) &&
 				(valueRegex == null || valueRegex.matcher(value.toString()).find());
 	}

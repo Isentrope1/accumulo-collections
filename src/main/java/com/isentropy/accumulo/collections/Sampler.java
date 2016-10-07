@@ -23,18 +23,52 @@ package com.isentropy.accumulo.collections;
 
 import java.io.Serializable;
 
+import com.isentropy.accumulo.util.Util;
+
 public class Sampler implements Serializable{
-	public long fromTs=-1,toTs=-1;
-	public String samplingSeed;
-	public double fromFractionalHash,toFractionalHash;
+	private static final long serialVersionUID = 1;
 	
-	public Sampler() {}
+	
+	protected long fromTs=-1,toTs=-1;
+	protected String samplingSeed;
+	protected double fromFractionalHash,toFractionalHash;
+	
+	public Sampler(double fraction){
+		init(Util.randomHexString(20),0,fraction,-1,-1);
+	}
 
 	public Sampler(String samplingSeed,double fromFractionalHash,double toFractionalHash,long fromTs,long toTs){
+		init(samplingSeed,fromFractionalHash,toFractionalHash,fromTs,toTs);
+	}
+	
+	protected void init(String samplingSeed,double fromFractionalHash,double toFractionalHash,long fromTs,long toTs){
 		this.samplingSeed = samplingSeed;
 		this.fromFractionalHash = fromFractionalHash;
 		this.toFractionalHash = toFractionalHash;
 		this.fromTs = fromTs;
 		this.toTs = toTs;
+	}
+	
+	public String getSamplingSeed(){
+		return samplingSeed;
+	}
+	public double getFractionalHashFrom(){
+		return fromFractionalHash;
+	}
+	public double getFractionalHashTo(){
+		return toFractionalHash;
+	}
+	public long getTimestampFrom(){
+		return fromTs;
+	}
+	public double getTimestampTo(){
+		return toTs;
+	}
+	
+	@Override
+	public String toString(){
+		return "samplingSeed = "+samplingSeed+"\n"+
+				"fractional hash range = ["+fromFractionalHash+", "+toFractionalHash+"]\n"+
+				"timestamp range = ["+fromTs+", "+toTs+"]";
 	}
 }

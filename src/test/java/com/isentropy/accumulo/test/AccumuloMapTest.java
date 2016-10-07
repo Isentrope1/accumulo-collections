@@ -105,6 +105,17 @@ extends TestCase
 	{
 		return new TestSuite( AccumuloMapTest.class );
 	}
+	public void demo2(Connector conn) throws AccumuloException, AccumuloSecurityException, InterruptedException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+		AccumuloSortedMap asm = new AccumuloSortedMapFactory(conn,"factory_name").makeMap("mapname");
+		for(long i=0;i<1000;i++){
+			asm.put(i, "value"+i);
+		}
+		AccumuloSortedMap submap = asm.subMap(100, 200);
+		//
+		submap.size();
+		System.out.println("key stats:\n"+asm.keyStats());
+		
+	}
 
 	public void demo() throws AccumuloException, AccumuloSecurityException, InterruptedException{
 		//connect to accumulo
@@ -242,9 +253,9 @@ extends TestCase
 	}
 	public void testMultiMap(Connector c, int maxValues) throws AccumuloException, AccumuloSecurityException, TableNotFoundException{
 		AccumuloSortedMap<Number,Number> mm = new AccumuloSortedMap(c,Util.randomHexString(10));
-		mm.setMultiMap(maxValues);
-		assertTrue(mm.getMultiMapMaxValues() == maxValues);
-		System.out.println("mm.getMultiMapMaxValues() == "+ mm.getMultiMapMaxValues());
+		mm.setMaxValuesPerKey(maxValues);
+		assertTrue(mm.getMaxValuesPerKey() == maxValues);
+		System.out.println("mm.getMultiMapMaxValues() == "+ mm.getMaxValuesPerKey());
 		mm.put(1, 2);
 		mm.put(1, 3);
 		mm.put(1, 4);
@@ -304,6 +315,7 @@ extends TestCase
 	{
 		try{
 			Connector c = new MockInstance().getConnector("root", new PasswordToken());
+			demo2(c);
 //			Connector c = new ZooKeeperInstance("t0","zk:2181").getConnector("root", new PasswordToken("secret"));
 			testLinks(c);
 			testFixedPointSerde(c);
