@@ -39,8 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
-import com.isentropy.accumulo.collections.io.DoubleAsUtf8Serde;
-import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.JavaSerializationSerde;
 import com.isentropy.accumulo.collections.io.SerDe;
 import com.isentropy.accumulo.iterators.DeserializedEntryTransformingIterator;

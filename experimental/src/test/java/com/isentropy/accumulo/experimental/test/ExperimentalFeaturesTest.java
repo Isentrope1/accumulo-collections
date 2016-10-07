@@ -12,9 +12,8 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
 
 import com.isentropy.accumulo.collections.AccumuloSortedMap;
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
-import com.isentropy.accumulo.collections.io.DoubleBinarySerde;
 import com.isentropy.accumulo.collections.io.LongBinarySerde;
+import com.isentropy.accumulo.experimental.collections.ScriptEnabledMap;
 import com.isentropy.accumulo.experimental.mappers.JavaScriptMappers;
 import com.isentropy.accumulo.util.Util;
 
@@ -35,9 +34,9 @@ extends TestCase
 	 *
 	 * @param testName name of the test case
 	 */
-	public ExperimentalFeaturesTest( String testName )
+	public ExperimentalFeaturesTest()
 	{
-		super( testName );
+		super( "testApp" );
 	}
 
 	/**
@@ -73,21 +72,16 @@ extends TestCase
 			mapOfLongToMap.deriveMap(jsTransform("k + v['twox'] + v['threex']")).dump(System.out);;
 			System.out.println("checksum = " + mapOfLongToMap.checksum());
 */			
-			AccumuloSortedMap mapOfLongToMap = new AccumuloSortedMap(c,"mytable2");
-			mapOfLongToMap.setKeySerde(new LongBinarySerde());
+			ScriptEnabledMap mapOfLongToMap = new ScriptEnabledMap(c,"mytable2");
 			for(long x=0;x<10;x++){
 				String json = "{\"a\":"+(x+1)+"}";
 				mapOfLongToMap.put(x,json);
 			}
 			// this is a map of [x,6x]
-			AccumuloSortedMapBase ja = mapOfLongToMap.deriveMap(jsTransform("j['a']",true));;
+			AccumuloSortedMap ja = mapOfLongToMap.jsTransform("j['a']",true);
 			ja.dump(System.out);
-			ja.joinOnValue(ja,ja,ja).dump(System.out);
-
+			mapOfLongToMap.jsFilter("k % 2 == 0", false).dump(System.out);
 			System.out.println("checksum = " + mapOfLongToMap.checksum());
-
-			
-			
 		}
 		
 		catch(Exception e){

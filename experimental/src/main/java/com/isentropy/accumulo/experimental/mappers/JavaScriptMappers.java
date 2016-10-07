@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-import com.isentropy.accumulo.collections.AccumuloSortedMapBase;
 import com.isentropy.accumulo.collections.DerivedMapper;
 import com.isentropy.accumulo.experimental.iterators.*;
 import com.isentropy.accumulo.collections.io.SerDe;
