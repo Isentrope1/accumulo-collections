@@ -53,7 +53,7 @@ public class ScriptFilter extends DeserializedFilter{
 	
 	
 	@Override
-	protected boolean acceptDeserialized(Object key, Object value) {
+	protected boolean allow(Object key, Object value) {
 		Map<String, Object> vars = new HashMap<String, Object>();
 		vars.put(KEY_SCRIPT_VARIABLE_NAME, key);
 		vars.put(VALUE_SCRIPT_VARIABLE_NAME, value);

@@ -92,7 +92,7 @@ public class ScriptTransformingIterator extends DeserializedEntryTransformingIte
 	}
 
 	@Override
-	protected Object transform(Object key, Object value) throws IOException {
+	protected Object transformValue(Object key, Object value) throws IOException {
 		Map<String, Object> vars = new HashMap<String, Object>();
 		vars.put(KEY_SCRIPT_VARIABLE_NAME, key);
 		vars.put(VALUE_SCRIPT_VARIABLE_NAME, value);
