@@ -386,6 +386,44 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		this.table = table;
 		init(createTable,errorIfTableAlreadyExists);
 	}
+	
+	protected void addPutMutation(K key, V value, BatchWriter bw) throws MutationsRejectedException {
+		Mutation m = new Mutation(getKey(key).getRowData().toArray());
+		m.put(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()), getValueSerde().serialize(value));
+		bw.addMutation(m);		
+	}
+
+	
+	protected void addRemoveMutation(Object key, BatchWriter bw) throws MutationsRejectedException{
+		Mutation m = new Mutation(getKey(key).getRowData().toArray());
+		m.putDelete(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()));
+		bw.addMutation(m);
+	}
+
+	
+	/**
+	 * adds delete mutation to BatchWriter, but doesn't flush it.
+	 * use flushCachedEdits() flush.
+	 * @param key
+	 * @throws MutationsRejectedException
+	 */
+	public void cacheRemove(K key) throws MutationsRejectedException {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+		addRemoveMutation(key, getBatchWriter());
+	}
+	/**
+	 * adds put mutation to BatchWriter, but doesn't flush it.
+	 * use flushCachedEdits() flush.
+	 * @param key
+	 * @throws MutationsRejectedException
+	 */
+	public void cachePut(K key, V value) throws MutationsRejectedException {
+		if(isReadOnly())
+			throw new UnsupportedOperationException();
+		addPutMutation(key,value, getBatchWriter());
+	}
+
 	/**
 	 * a full map checksum to ensure data integrity
 	 * computed on tablet servers using MapChecksumAggregateIterator
@@ -394,7 +432,9 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	 *  whose bottom int is the sum of values' hashCode(). Note that this
 	 *  checksum runs on the deserialized java objects and should therefore be
 	 *  independent of SerDe
-	 */	
+	 * @throws MutationsRejectedException 
+	 */		
+	
 	public final long checksum(){
 		return checksum(false);
 	}
@@ -569,6 +609,12 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 	@Override
 	public K firstKey() {
 		return entrySet().iterator().next().getKey();
+	}
+	
+	public void flushCachedEdits() throws MutationsRejectedException{
+		BatchWriter bw = getBatchWriter();
+		if(bw != null)
+			bw.flush();
 	}
 
 	protected String formatDumpLine(Map.Entry<K,V> e){
@@ -787,10 +833,10 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 				V value = (V) e.getValue();
 				if(trans != null){
 					Entry tranformed = trans.transformKeyValue(key, value);
-					put((K) tranformed.getKey(), (V) tranformed.getValue(), bw);										
+					addPutMutation((K) tranformed.getKey(), (V) tranformed.getValue(), bw);										
 				}
 				else{
-					put(key,value,bw);					
+					addPutMutation(key,value,bw);					
 				}
 				if(computeChecksum){
 					keySum += key.hashCode();
@@ -1012,18 +1058,6 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		}
 	}
 
-	/**
-	 * 
-	 * @param key
-	 * @param value
-	 * @param bw
-	 * @throws MutationsRejectedException
-	 */
-	protected void put(K key, V value, BatchWriter bw) throws MutationsRejectedException {
-		Mutation m = new Mutation(getKey(key).getRowData().toArray());
-		m.put(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()), getValueSerde().serialize(value));
-		bw.addMutation(m);		
-	}; 
 
 	/**
 	 * this method is optimized for batch writing. 
@@ -1052,7 +1086,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 			throw new UnsupportedOperationException();
 		try {
 			BatchWriter bw = getBatchWriter();
-			put(key, value,bw);
+			addPutMutation(key, value,bw);
 			bw.flush();
 		}
 		catch(MutationsRejectedException e){
@@ -1104,9 +1138,7 @@ public class AccumuloSortedMap<K,V> implements SortedMap<K,V>{
 		try {
 			V prev = this.get(key);
 			BatchWriter bw = getBatchWriter();
-			Mutation m = new Mutation(getKey(key).getRowData().toArray());
-			m.putDelete(getColumnFamily(), getColumnQualifier(),new ColumnVisibility(getColumnVisibility()));
-			bw.addMutation(m);
+			addRemoveMutation(key,bw);
 			bw.flush();
 			return prev;
 		}
